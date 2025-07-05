@@ -1,8 +1,8 @@
-import { Button, SafeAreaView, Text, View } from 'react-native'
+import { Button, Dimensions, SafeAreaView, Text, View } from 'react-native'
 import { styles } from '../../components/themes/styles'
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useUser } from '../../hooks/useUser';
 import ThemedView from '../../components/views/themedView';
 import CurvedLine from '../../components/special/curveLine';

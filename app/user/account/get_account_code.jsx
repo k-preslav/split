@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Animated, Button, SafeAreaView, Text, TextInput, View } from 'react-native';
+import { Animated, Button, Dimensions, SafeAreaView, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userDetails } from '../../../lib/userDetails';
@@ -14,12 +14,15 @@ import { ArrowRight, ShareIcon } from 'lucide-react-native';
 import VerticalView from '../../../components/views/verticalView';
 import HorizontalView from '../../../components/views/horizontalView';
 import ActionButton from '../../../components/common/actionButton';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 const GetAccountCode = () => {
-  const insets = useSafeAreaInsets();
   const userCode = userDetails.userProfile.userCode;
 
-  const {logout, setGesturesEnabled} = useUser();
+  const {setGesturesEnabled} = useUser();
+
+  const screenWidth = Dimensions.get('window').width;
+  const screenHeight = Dimensions.get('window').height;
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
@@ -57,6 +60,18 @@ const GetAccountCode = () => {
           Got it!
         </BigButton>
       </FixedBottomView>
+
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+        <ConfettiCannon
+          count={200}
+          origin={{x: screenWidth / 2, y: screenHeight}}
+          fadeOut={true}
+          explosionSpeed={200}
+          fallSpeed={2000}
+          autoStart={true}
+          autoStartDelay={300}
+        />
+      </View>
     </ThemedView>
   );
 };
