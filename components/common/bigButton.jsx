@@ -4,13 +4,14 @@ import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
 
-const SecondaryButton = ({
+const BigButton = ({
   children,
   onPress,
   style,
   enableHaptic = true,
   loadingOnPress = false,
-  icon = null, 
+  isPrimary = true,
+  icon = null,
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   
@@ -41,15 +42,15 @@ const SecondaryButton = ({
   return (
     <Pressable
       onPress={handlePress}
-      style={styles.secondaryButton}
+      style={isPrimary ? styles.primaryButton : styles.secondaryButton}
     >
         {isLoading ? (
           <ActivityIndicator size="small" style={styles.spinner} />
         ) : (
           <>
-            <Text style={styles.buttonTextSecondary}>{children}</Text>
+            <Text style={isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary}>{children}</Text>
             {icon && <>{React.cloneElement(icon, {
-              color: 'white'
+              color: isPrimary ? 'black' : 'white',
             })}</>}
           </>
         )}
@@ -57,4 +58,4 @@ const SecondaryButton = ({
   );
 };
 
-export default SecondaryButton;
+export default BigButton;

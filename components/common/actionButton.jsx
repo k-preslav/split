@@ -4,7 +4,7 @@ import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
 
-const PrimaryButton = ({
+const ActionButton = ({
   children,
   onPress,
   style,
@@ -55,4 +55,4 @@ const PrimaryButton = ({
   );
 };
 
-export default PrimaryButton;
+export default ActionButton;
