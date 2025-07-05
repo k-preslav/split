@@ -28,13 +28,13 @@ const InputField = ({
   const isEmail = keyboard === 'email';
   const keyboardType = isPassword ? 'default' : (isEmail ? "email-address" : keyboard);
 
-  const [canBeCentered, setCanBeEntered] = React.useState(true);
+  const [canBeCentered, setCanBeCentered] = React.useState(true);
   const handleTextChange = (text) => {
-    if (text.length < 27) {
-      setCanBeEntered(true);
+    if (text.length < 20) {
+      setCanBeCentered(true);
     }
     else {
-      setCanBeEntered(false);
+      setCanBeCentered(false);
     }
   }
 

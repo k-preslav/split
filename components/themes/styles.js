@@ -8,11 +8,9 @@ export const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    containerShiftUp: {
-        flex: 1,
-        justifyContent: 'center',
+    fixedBottom: {
+        justifyContent: 'flex-end',
         alignItems: 'center',
-        transform: [{ translateY: -100}],
         width: '100%',
         height: '100%',
     },
