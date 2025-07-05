@@ -18,11 +18,11 @@ const themePlayground = () => {
 
   return (
     <ThemedView>
-      <CurvedLine/>
+      <CurvedLine text='This is curvy 😋'/>
       <CurvedLine flipY/>
       
       <FixedCenterView yOffset={-95}>
-        <BigText>Welcome 👋</BigText>
+        <BigText>BIG Text</BigText>
       </FixedCenterView>
 
       <FixedBottomView>
@@ -65,6 +65,7 @@ const themePlayground = () => {
           <ActionButton 
             isRound={false}
             isPrimary={false}
+            loadingOnPress={true}
             size={65}
             icon={<Check strokeWidth={2.5} />}
           />

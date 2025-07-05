@@ -46,6 +46,14 @@ const BigButton = ({
       style={[
         styles.bigButton, 
         {backgroundColor: isPrimary ? Colors.buttonPrimary : Colors.buttonSecondary},
+          isPrimary && {
+            shadowColor: Colors.primary,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.125,
+            shadowRadius: 20,
+
+            elevation: 10,
+          },
         style
       ]}
     >

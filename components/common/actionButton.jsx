@@ -50,6 +50,14 @@ const ActionButton = ({
         {backgroundColor: isPrimary ? Colors.buttonPrimary : (extraLightWhenSecondary ? Colors.buttonSecondaryLighter : Colors.buttonSecondary)},
         { borderRadius: isRound ? size / 2: 15 },
         { width: size, height: size },
+        isPrimary && {
+          shadowColor: Colors.primary,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.125,
+          shadowRadius: 20,
+
+          elevation: 10,
+        },
         style
       ]}
     >

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Text, TextPath, Defs } from 'react-native-svg';
 import { Colors } from '../themes/colors';
+import { styles } from '../themes/styles';
 
 const CurvedLine = ({
   height = 389,
@@ -10,9 +11,10 @@ const CurvedLine = ({
   flipX = false,
   flipY = false,
   curve = 'M3 381 C197 312.5 440 229 505.5 3',
+  text = '',
+  textYOffset = -25,
   style = {},
 }) => {
-  // viewBox used for zooming and flipping
   const zoomedViewBox = {
     x: flipX ? -20 : 20,
     y: 0,
@@ -20,11 +22,17 @@ const CurvedLine = ({
     height: 340,
   };
 
-  // calculate transforms
   const translateX = flipX ? zoomedViewBox.width : 0;
   const translateY = flipY ? zoomedViewBox.height : 0;
   const scaleX = flipX ? -1 : 1;
   const scaleY = flipY ? -1 : 1;
+
+  const viewBoxWidth = zoomedViewBox.width;
+
+  const textTransform = flipX
+    ? `translate(0, ${textYOffset || 0}) rotate(55, 240, 315)`
+    : `translate(0, ${textYOffset || 0})`;
+
 
   const transform = (flipX || flipY)
     ? `translate(${translateX}, ${translateY}) scale(${scaleX}, ${scaleY})`
@@ -39,6 +47,10 @@ const CurvedLine = ({
         width="100%"
         viewBox={`${zoomedViewBox.x} ${zoomedViewBox.y} ${zoomedViewBox.width} ${zoomedViewBox.height}`}
       >
+        <Defs>
+          <Path id="curvedTextPath" d={curve} />
+        </Defs>
+
         <Path
           d={curve}
           stroke={stroke}
@@ -46,6 +58,20 @@ const CurvedLine = ({
           fill="none"
           transform={transform}
         />
+
+        {/* Text along the curve */}
+        {text ? (
+          <Text
+            style={styles.bigText}
+            fill={Colors.textLight}
+            textAnchor="middle"
+            transform={textTransform}
+          >
+            <TextPath href="#curvedTextPath" startOffset="35%" >
+              {text}
+            </TextPath>
+          </Text>
+        ) : null}
       </Svg>
     </View>
   );

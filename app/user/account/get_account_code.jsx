@@ -4,7 +4,16 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userDetails } from '../../../lib/userDetails';
 import { useUser } from '../../../hooks/useUser';
-import { styles } from '../../../components/themes/styles';
+import ThemedView from '../../../components/views/themedView';
+import CurvedLine from '../../../components/special/curveLine';
+import FixedCenterView from '../../../components/views/fixedCenterView';
+import BigText from '../../../components/common/bigText';
+import FixedBottomView from '../../../components/views/fixedBottomView';
+import BigButton from '../../../components/common/bigButton';
+import { ArrowRight, ShareIcon } from 'lucide-react-native';
+import VerticalView from '../../../components/views/verticalView';
+import HorizontalView from '../../../components/views/horizontalView';
+import ActionButton from '../../../components/common/actionButton';
 
 const GetAccountCode = () => {
   const insets = useSafeAreaInsets();
@@ -17,26 +26,38 @@ const GetAccountCode = () => {
   }, []))
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.almostCenter}>
-        <Text style={styles.text}>Done 🎉</Text>
-        <Text>Your code: {userCode}</Text>
-      </View>
+    <ThemedView>
+      <FixedCenterView yOffset={-95}>
+        <VerticalView style={{gap: 20}}>
+            <BigText>{userDetails.isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
+            <Text>Your code:</Text>
+          </VerticalView>
+          <HorizontalView style={{marginTop: 10, gap: 10}}>
+            <Text>{userDetails.userProfile.userCode}</Text>
+            <ActionButton
+              icon={<ShareIcon strokeWidth={2.5} />}
+              size={45}
+              isPrimary={false}
+              isRound={false}
+              onPress={() => {
+                navigator.clipboard.writeText(userCode);
+              }}
+            />
+          </HorizontalView>
+      </FixedCenterView>
 
-      <View style={{
-          position: 'absolute',
-          bottom: insets.bottom + 130,
-      }}>
-          <Button title="Got it!" onPress={() => {
-              router.navigate('/groups/groupsView')
-          }} />
-
-          <Button title="Log out" onPress={async() => {
-              await logout();
-              router.replace('/')
-          }} />
-      </View>
-    </SafeAreaView>
+      <FixedBottomView>
+        <BigButton
+          loadingOnPress={true}
+          onPress={async () => {
+            userDetails.password = password;
+            await handleSubmit();
+          }}
+        >
+          Got it!
+        </BigButton>
+      </FixedBottomView>
+    </ThemedView>
   );
 };
 

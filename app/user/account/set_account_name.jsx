@@ -5,6 +5,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userDetails } from '../../../lib/userDetails';
 import { useUser } from '../../../hooks/useUser';
+import ThemedView from '../../../components/views/themedView';
+import CurvedLine from '../../../components/special/curveLine';
+import FixedCenterView from '../../../components/views/fixedCenterView';
+import BigText from '../../../components/common/bigText';
+import FixedBottomView from '../../../components/views/fixedBottomView';
+import BigButton from '../../../components/common/bigButton';
+import { ArrowRight } from 'lucide-react-native';
+import InputField from '../../../components/common/inputField';
 
 const SetAccountName = () => {
   const insets = useSafeAreaInsets();
@@ -20,7 +28,7 @@ const SetAccountName = () => {
   const handleSubmit = async () => {
     setLoading(true);
 
-    await register(userDetails.username, userDetails.email, userDetails.password).then(async(res) => {
+    await register(userDetails.name, userDetails.email, userDetails.password).then(async(res) => {
       if (res.code) { // If there is an error code, the registration failed
         console.log(res.message);
       }
@@ -32,32 +40,25 @@ const SetAccountName = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.almostCenter}>
-          <TextInput
-            style={styles.input}
-            placeholder="username"
-            keyboardType='default'
-            autoCapitalize='none'
-            value={accountName}
-            onChangeText={setAccountName}
-          />
+      <ThemedView>
+        <CurvedLine flipX text='Enter your name'/>
+        <CurvedLine flipX flipY/>
 
-          { isLoading && (
-            <Text>{'Please me...'}</Text>
-          )}  
-        </View>
+        <FixedCenterView yOffset={-95}>
+          <InputField placeholder='John' value={accountName} onChangeText={setAccountName}/>
+        </FixedCenterView>
 
-        <View style={{
-          position: 'absolute',
-          bottom: insets.bottom + 130,
-        }}>
-          <Button title="Next" onPress={() => {
-            userDetails.username = accountName;
-            handleSubmit();
-          }} />
-        </View>
-      </SafeAreaView>
+        <FixedBottomView>
+          <BigButton
+            icon={<ArrowRight strokeWidth={2.5} />}
+            loadingOnPress={true}
+            onPress={async () => {
+              userDetails.name = accountName;
+              await handleSubmit();
+            }}
+          >Next</BigButton>
+        </FixedBottomView>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };

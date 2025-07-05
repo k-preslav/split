@@ -13,6 +13,7 @@ import { styles } from '../themes/styles';
  *   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters',
  *   value?: string,
  *   style?: any
+ *   onChangeText?: (text: string) => void,
  * }} props
  */
 
@@ -22,6 +23,7 @@ const InputField = ({
   autoCapitalize = 'none',
   value,
   style,
+  onChangeText = () => {},
   ...props
 }) => {
   const isPassword = keyboard === 'password';
@@ -30,6 +32,8 @@ const InputField = ({
 
   const [canBeCentered, setCanBeCentered] = React.useState(true);
   const handleTextChange = (text) => {
+
+
     if (text.length < 20) {
       setCanBeCentered(true);
     }
@@ -49,7 +53,10 @@ const InputField = ({
       numberOfLines={1}
       value={value}
       textAlign={canBeCentered ? 'center' : 'left'}
-      onChangeText={handleTextChange}
+      onChangeText={(text) => {
+        handleTextChange(text);
+        onChangeText(text);
+      }}
       {...props}
     />
   );

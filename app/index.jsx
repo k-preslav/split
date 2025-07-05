@@ -15,7 +15,7 @@ const Index = () => {
     // THIS IS TEMPORARY!!!!
 
     setTimeout(() => {
-      router.navigate('/themePlayground')
+      router.navigate('/user/user_welcome');
     }, 100)
 
     //  try {

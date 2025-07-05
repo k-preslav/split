@@ -5,6 +5,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userDetails } from '../../../lib/userDetails';
 import { useUser } from '../../../hooks/useUser';
+import ThemedView from '../../../components/views/themedView';
+import CurvedLine from '../../../components/special/curveLine';
+import FixedCenterView from '../../../components/views/fixedCenterView';
+import BigText from '../../../components/common/bigText';
+import FixedBottomView from '../../../components/views/fixedBottomView';
+import BigButton from '../../../components/common/bigButton';
+import { ArrowRight } from 'lucide-react-native';
+import InputField from '../../../components/common/inputField';
 
 const SetAccountEmail = () => {
   const insets = useSafeAreaInsets();
@@ -17,35 +25,24 @@ const SetAccountEmail = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.almostCenter}>
-          <TextInput
-            style={styles.input}
-            placeholder="email"
-            keyboardType='email-address'
-            autoCapitalize='none'
-            value={email}
-            onChangeText={setEmail}
-          />
+      <ThemedView>
+        <CurvedLine flipX text='Enter your email'/>
+        <CurvedLine flipY flipX/>
 
-          <Button
-            title = "Autofill"
+        <FixedCenterView yOffset={-95}>
+          <InputField keyboard='email' placeholder='cutipie@gonners.com' value={email} onChangeText={setEmail}/>
+        </FixedCenterView>
+
+        <FixedBottomView>
+          <BigButton
+            icon={<ArrowRight strokeWidth={2.5} />}
             onPress={() => {
-              setEmail(userDetails.email);
+              userDetails.email = email;
+              router.push('/user/account/set_account_password');
             }}
-          />
-        </View>
-
-        <View style={{
-          position: 'absolute',
-          bottom: insets.bottom + 130,
-        }}>
-          <Button title="Next" onPress={() => {
-            router.push('/user/account/set_account_password')
-            userDetails.email = email;
-          }} />
-        </View>
-      </SafeAreaView>
+          >Next</BigButton>
+        </FixedBottomView>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };

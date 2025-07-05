@@ -19,6 +19,8 @@ const FixedCenterView = ({ yOffset = 0, style, ...props }) => {
             { translateX: -offset.x },
             { translateY: -offset.y + yOffset },
           ],
+          width: '100%',
+          alignItems: 'center',
         },
         style, // allow additional styles to be passed
       ]}

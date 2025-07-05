@@ -6,6 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { userDetails } from '../../../lib/userDetails';
 import { useUser } from '../../../hooks/useUser';
 import { doesUserExistByEmail } from '../../../lib/getUser';
+import ThemedView from '../../../components/views/themedView';
+import CurvedLine from '../../../components/special/curveLine';
+import FixedCenterView from '../../../components/views/fixedCenterView';
+import BigText from '../../../components/common/bigText';
+import FixedBottomView from '../../../components/views/fixedBottomView';
+import BigButton from '../../../components/common/bigButton';
+import { ArrowRight } from 'lucide-react-native';
+import InputField from '../../../components/common/inputField';
 
 const SetAccountPassword = () => {
   const insets = useSafeAreaInsets();
@@ -27,6 +35,8 @@ const SetAccountPassword = () => {
 
     const exists = await doesUserExistByEmail(userDetails.email);
     console.log("User exists:", exists);
+
+    userDetails.isNewProfile = !exists;
 
     if (exists) {
       await login(userDetails.email, userDetails.password).then(async (res) =>{
@@ -67,41 +77,25 @@ const SetAccountPassword = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.almostCenter}>
-          <TextInput
-            style={styles.input}
-            placeholder="password"
-            keyboardType='default'
-            secureTextEntry={true}
-            autoCapitalize='none'
-            value={password}
-            onChangeText={setPassword}
-          />
+      <ThemedView>
+        <CurvedLine text='Enter your pass'/>
+        <CurvedLine flipY/>
 
-          { isLoading && (
-            <Text>{'Plase wait...'}</Text>
-          )}
-          { failedToLogin && (
-            <View>
-              <Text style={{ color: 'red' }}>{failedToLogin}</Text>
-              <Button title="Back" onPress={() => {
-                router.back();
-              }} />
-            </View>
-          )}
-        </View>
+        <FixedCenterView yOffset={-95}>
+          <InputField keyboard='password' placeholder='•••••••••' value={password} onChangeText={setPassword}/>
+        </FixedCenterView>
 
-        <View style={{
-          position: 'absolute',
-          bottom: insets.bottom + 130,
-        }}>
-          <Button title="Next" onPress={() => {
-            userDetails.password = password;
-            handleSubmit();
-          }} />
-        </View>
-      </SafeAreaView>
+        <FixedBottomView>
+          <BigButton
+            icon={<ArrowRight strokeWidth={2.5} />}
+            loadingOnPress={true}
+            onPress={async () => {
+              userDetails.password = password;
+              await handleSubmit();
+            }}
+          >Next</BigButton>
+        </FixedBottomView>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };

@@ -15,6 +15,7 @@ function RootLayoutNav() {
           headerShown: false,
           gestureEnabled: areGesturesEnabled,
           animation: 'simple_push',
+          animationTypeForReplace: 'pop',
         }}
       />
     </>
