@@ -3,14 +3,18 @@ import { Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
+import { Colors } from '../themes/colors';
 
 const ActionButton = ({
-  children,
   onPress,
   style,
   enableHaptic = true,
   loadingOnPress = false,
-  icon = null, 
+  isPrimary = true,
+  extraLightWhenSecondary = false,
+  isRound = true,
+  size = 60,
+  icon = null,
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   
@@ -41,14 +45,22 @@ const ActionButton = ({
   return (
     <Pressable
       onPress={handlePress}
-      style={styles.primaryButton}
+      style={[
+        styles.actionButton, 
+        {backgroundColor: isPrimary ? Colors.buttonPrimary : (extraLightWhenSecondary ? Colors.buttonSecondaryLighter : Colors.buttonSecondary)},
+        { borderRadius: isRound ? size / 2: 15 },
+        { width: size, height: size },
+        style
+      ]}
     >
         {isLoading ? (
           <ActivityIndicator size="small" style={styles.spinner} />
         ) : (
           <>
-            <Text style={styles.buttonTextPrimary}>{children}</Text>
-            {icon && <>{icon}</>}
+            {icon && <>{React.cloneElement(icon, {
+              color: isPrimary ? Colors.textDark : Colors.textLight,
+              size: size * 0.43,
+            })}</>}
           </>
         )}
     </Pressable>

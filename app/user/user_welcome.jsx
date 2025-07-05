@@ -25,7 +25,7 @@ const UserWelcome = () => {
       }}>
         <Button
           title="Next"
-          onPress={() => router.push('/user/account/set_account_email')}
+          onPress={() => router.navigate('/user/account/set_account_email')}
         />
       </View>
     </SafeAreaView>

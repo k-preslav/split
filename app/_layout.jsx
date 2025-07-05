@@ -14,6 +14,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           gestureEnabled: areGesturesEnabled,
+          animation: 'simple_push',
         }}
       />
     </>

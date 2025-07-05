@@ -3,10 +3,10 @@ import React from 'react'
 import { styles } from '../themes/styles'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const ThemedView = ({...props}) => {
+const ThemedView = ({style, ...props}) => {
   return (
     <SafeAreaView 
-      style={styles.container}
+      style={[styles.container, style]}
       {...props}
     />
   )

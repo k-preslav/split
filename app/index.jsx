@@ -1,4 +1,4 @@
-import { Button, Text, View } from 'react-native'
+import { ActivityIndicator, Button, Text, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Link, router } from 'expo-router'
 import { styles } from '../components/themes/styles'
@@ -15,23 +15,23 @@ const Index = () => {
     // THIS IS TEMPORARY!!!!
 
     setTimeout(() => {
-      router.push('/themePlayground')
+      router.navigate('/themePlayground')
     }, 100)
-  
-    // try {
 
-    //   const user = await account.get();
+    //  try {
 
-    //   if (user) {
-    //     const profile = await fetchUserProfile(user.$id);
-    //     if (profile) {
-    //       router.replace('/groups/groupsView');
-    //     }
-    //     else router.replace('/user/user_welcome');
-    //   }
-    // } catch (err) {
-    //   router.replace('/user/user_welcome');
-    // }
+    //    const user = await account.get();
+
+    //    if (user) {
+    //      const profile = await fetchUserProfile(user.$id);
+    //      if (profile) {
+    //        router.replace('/groups/groupsView');
+    //      }
+    //      else router.replace('/user/user_welcome');
+    //    }
+    //  } catch (err) {
+    //    router.replace('/user/user_welcome');
+    //  }
   };
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const Index = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Loading...</Text>
+      <ActivityIndicator size='large'></ActivityIndicator>
     </View>
   )
 }

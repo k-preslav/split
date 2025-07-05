@@ -10,12 +10,22 @@ export const styles = StyleSheet.create({
     },
     containerShiftUp: {
         flex: 1,
-        //backgroundColor: Colors.background,
         justifyContent: 'center',
         alignItems: 'center',
         transform: [{ translateY: -100}],
         width: '100%',
         height: '100%',
+    },
+    horizontalView: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    verticalView: {
+        width: '100%',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
 
     bigText: {
@@ -25,40 +35,42 @@ export const styles = StyleSheet.create({
         fontFamily: 'Satoshi-Medium',
     },
 
-    primaryButton: {
+    bigButton: {
         flexDirection: 'row',
         gap: 5,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.buttonPrimary,
         paddingVertical: 12,
         paddingHorizontal: 24,
         width: '83%',
         height: 65,
         borderRadius: 99,
     },
-    buttonTextPrimary: {
-        color: Colors.textDark,
+    buttonText: {
         fontSize: 21,
         fontFamily: 'Satoshi-Bold',
     },
 
-    secondaryButton: {
+    actionButton: {
         flexDirection: 'row',
-        gap: 5,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: Colors.buttonSecondary,
         paddingVertical: 12,
         paddingHorizontal: 24,
-        width: '83%',
-        height: 65,
         borderRadius: 99,
     },
-    buttonTextSecondary: {
+
+    inputField: {
+        width: '65%',
+        height: 50,
+        borderWidth: 1,
+        borderRadius: 99,
+        borderColor: Colors.light,
+        paddingHorizontal: 15,
+        fontFamily: 'Satoshi-Regular',
+        fontSize: 18,
         color: Colors.textLight,
-        fontSize: 21,
-        fontFamily: 'Satoshi-Bold',
+        backgroundColor: Colors.backgroundSecondary,
     },
 
     spinner: {

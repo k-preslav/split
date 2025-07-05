@@ -3,13 +3,13 @@ import React from 'react'
 import { Colors } from '../themes/colors'
 import { styles } from '../themes/styles'
 
-const ShiftUpCenterView = ({style, ...props}) => {
+const HorizontalView = ({style, ...props}) => {
   return (
     <View 
-      style={[styles.containerShiftUp, style]}
+      style={[styles.horizontalView, style]}
       {...props}
     />
   )
 }
 
-export default ShiftUpCenterView
+export default HorizontalView
