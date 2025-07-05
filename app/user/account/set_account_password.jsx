@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, use, useCallback } from 'react';
-import { Animated, Button, Keyboard, SafeAreaView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Animated, Button, Keyboard, SafeAreaView, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { styles } from '../../../components/themes/styles';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,14 +12,16 @@ import FixedCenterView from '../../../components/views/fixedCenterView';
 import BigText from '../../../components/common/bigText';
 import FixedBottomView from '../../../components/views/fixedBottomView';
 import BigButton from '../../../components/common/bigButton';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, StepBack } from 'lucide-react-native';
 import InputField from '../../../components/common/inputField';
+import HorizontalView from '../../../components/views/horizontalView';
+import ActionButton from '../../../components/common/actionButton';
 
 const SetAccountPassword = () => {
   const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [isLoading, setLoading] = useState(false);
-  const [failedToLogin, setFailedToLogin] = useState(null);
+  const [invalidCred, setInvalidCred] = useState(false);
 
   const { user, login, logout, setGesturesEnabled } = useUser();
 
@@ -29,7 +31,6 @@ const SetAccountPassword = () => {
 
   const handleSubmit = async () => {
     setLoading(true);
-    setFailedToLogin(null);
 
     await logout();
 
@@ -45,16 +46,18 @@ const SetAccountPassword = () => {
         }
         else {
           setPassword('');
-
+          
           switch (res.code) {
             case 400:
-              setFailedToLogin("Password must be at least 8 characters long.");
+              Alert.alert("Invalid password", "Password must be at least 8 characters long.");
               break;
             case 401:
-              setFailedToLogin("Incorrect email or password.");
+              Alert.alert("Invalid credentials", "Incorrect email or password.");
+              setInvalidCred(true);
               break;
             default:
-              setFailedToLogin("An error occurred: " + res.message + " (Code: " + res.code + ")");
+              Alert.alert("Error",  res.message);
+              console.log("Login error occurred: " + res.message + " (Code: " + res.code + ")");
               break;
           }
         }
@@ -63,7 +66,14 @@ const SetAccountPassword = () => {
     else { // User does not exits
       // Check password length
       if (password.length < 8) {
-        setFailedToLogin("Password must be at least 8 characters long.");
+        Alert.alert("Invalid password", "Password must be at least 8 characters long.");
+        setLoading(false);
+        return;
+      }
+
+      if (userDetails.email.length < 1) {
+        Alert.alert("Invalid email", "Email can not be empty.");
+        setInvalidCred(true);
         setLoading(false);
         return;
       }
@@ -86,14 +96,26 @@ const SetAccountPassword = () => {
         </FixedCenterView>
 
         <FixedBottomView>
-          <BigButton
-            icon={<ArrowRight strokeWidth={2.5} />}
-            loadingOnPress={true}
-            onPress={async () => {
-              userDetails.password = password;
-              await handleSubmit();
-            }}
-          >Next</BigButton>
+          <HorizontalView style={{gap: 10, width: '85%'}}>
+            <ActionButton 
+            size={65}
+              icon={<StepBack strokeWidth={2.5} />}
+              isPrimary={invalidCred}
+              onPress={() => {
+                router.back();
+              }
+              }
+            />
+
+            <BigButton
+              icon={<ArrowRight strokeWidth={2.5} />}
+              loadingOnPress={true}
+              onPress={async () => {
+                userDetails.password = password;
+                await handleSubmit();
+              }}
+            >Next</BigButton>
+          </HorizontalView>
         </FixedBottomView>
       </ThemedView>
     </TouchableWithoutFeedback>
