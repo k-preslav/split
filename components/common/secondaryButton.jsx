@@ -4,7 +4,7 @@ import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
 
-const PrimaryButton = ({
+const SecondaryButton = ({
   children,
   onPress,
   style,
@@ -41,18 +41,20 @@ const PrimaryButton = ({
   return (
     <Pressable
       onPress={handlePress}
-      style={styles.primaryButton}
+      style={styles.secondaryButton}
     >
         {isLoading ? (
           <ActivityIndicator size="small" style={styles.spinner} />
         ) : (
           <>
-            <Text style={styles.buttonTextPrimary}>{children}</Text>
-            {icon && <>{icon}</>}
+            <Text style={styles.buttonTextSecondary}>{children}</Text>
+            {icon && <>{React.cloneElement(icon, {
+              color: 'white'
+            })}</>}
           </>
         )}
     </Pressable>
   );
 };
 
-export default PrimaryButton;
+export default SecondaryButton;

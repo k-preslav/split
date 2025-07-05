@@ -17,16 +17,14 @@ export const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+
     bigText: {
         fontSize: 42,
         color: Colors.textLight,
         textAlign: 'center',
-        fontFamily: 'Satoshi-Bold',
+        fontFamily: 'Satoshi-Medium',
     },
-    buttonContainer: {
-        width: '80%',
-        height: 65,
-    },
+
     primaryButton: {
         flexDirection: 'row',
         gap: 5,
@@ -35,7 +33,8 @@ export const styles = StyleSheet.create({
         backgroundColor: Colors.buttonPrimary,
         paddingVertical: 12,
         paddingHorizontal: 24,
-        height: '100%',
+        width: '83%',
+        height: 65,
         borderRadius: 99,
     },
     buttonTextPrimary: {
@@ -43,8 +42,27 @@ export const styles = StyleSheet.create({
         fontSize: 21,
         fontFamily: 'Satoshi-Bold',
     },
+
+    secondaryButton: {
+        flexDirection: 'row',
+        gap: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.buttonSecondary,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        width: '83%',
+        height: 65,
+        borderRadius: 99,
+    },
+    buttonTextSecondary: {
+        color: Colors.textLight,
+        fontSize: 21,
+        fontFamily: 'Satoshi-Bold',
+    },
+
     spinner: {
         transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }],
-        color: "#000000"
-    }
+        color: "black"
+    },
 })
