@@ -1,5 +1,5 @@
 import { Alert, TouchableOpacity, View } from 'react-native';
-import React from 'react';
+import React, { use } from 'react';
 import MonospacedText from '../common/monospacedText';
 import { Colors } from '../themes/colors';
 import * as Haptics from 'expo-haptics';
@@ -22,8 +22,6 @@ const UserCode = ({ userCode, ...props }) => {
         style={{
           width: 150,
           height: 40,
-          paddingLeft: 10,
-          paddingRight: 0,
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 15,
@@ -36,9 +34,13 @@ const UserCode = ({ userCode, ...props }) => {
           ...props.style,
         }}
       >
-        <MonospacedText fontSize={20} color={Colors.textDark} style={{ textAlign: 'center' }}>
-          {userCode}
+        <MonospacedText
+          fontSize={20}
+          color={Colors.textDark}
+          userCode={userCode}
+        >
         </MonospacedText>
+
       </View>
     </TouchableOpacity>
   );

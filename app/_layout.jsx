@@ -14,7 +14,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           gestureEnabled: areGesturesEnabled,
-          animation: 'simple_push',
+          animation: 'slide_from_right',
           animationTypeForReplace: 'push',
           animationDuration: 400,
         }}

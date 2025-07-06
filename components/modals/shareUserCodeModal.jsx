@@ -1,4 +1,4 @@
-import { View, Text, Image, Share, Alert } from 'react-native'
+import { View, Text, Image, Share, Alert, Dimensions } from 'react-native'
 import React from 'react'
 import ThemedModal from './themedModal'
 import ThemedText from '../common/themedText'
@@ -9,9 +9,16 @@ import { Check, Copy, CopyCheck, CopyMinus, Forward } from 'lucide-react-native'
 import HorizontalView from '../views/horizontalView';
 import ActionButton from '../common/actionButton';
 import * as Clipboard from 'expo-clipboard';
+import { moderateScale, moderateVerticalScale, scale } from 'react-native-size-matters';
 
 const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
   const [codeCopied, setCodeCopied] = React.useState(false);
+
+  const { width, height } = Dimensions.get('window');
+  const pieceSize = width < 250 ? 7 : width < 350 ? 11 : 13;
+  const modalHeight = width < 350 ? '56%' : '50%'
+  const qrContainerWidth = width < 350 ? '79%' : '82%';
+  const scanMeFontSize = width < 350 ? 16 : 22;
 
   const handleShareExternal = async () => {
     try {
@@ -26,20 +33,20 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
   }
 
   return (
-    <ThemedModal height='50%' visible={visible} onClose={onClose}>
+    <ThemedModal height={modalHeight} visible={visible} onClose={onClose}>
       <View style={{position: 'absolute', top: 90, right: 30}}>
         <ThemedText
           fontWeight={'Medium'}
-          fontSize={24}
+          fontSize={scanMeFontSize}
           style={{
             textAlign: 'center',
           }}
         >{'S\nC\nA\nN\n\nM\nE'}</ThemedText>
       </View>
-      <View style={shareCodeStayle.qrCodeContainer}>
+      <View style={[shareCodeStayle.qrCodeContainer, {width: qrContainerWidth}]}>
         <QRCodeStyled 
           data={userCode}
-          pieceSize={12.5}
+          pieceSize={pieceSize}
           pieceScale={1.02}
           pieceLiquidRadius={5}
           outerEyesOptions={{
@@ -53,7 +60,7 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
         <HorizontalView style={{gap: 5}}>
           <ActionButton 
             icon={codeCopied ? <Check strokeWidth={2.5}/> : <Copy strokeWidth={2.5} />}
-            size={80}
+            size={moderateVerticalScale(70)}
             onPress={async() => {
               await Clipboard.setStringAsync(userCode);
               setCodeCopied(true);
@@ -65,7 +72,7 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
           />
           <BigButton 
             icon={<Forward strokeWidth={2.5} />}
-            style={{width: '72%', height: 80}}
+            style={{width: '72%', height: moderateVerticalScale(70)}}
             loadingOnPress={true}
             onPress={handleShareExternal}
           >Share</BigButton>
@@ -82,7 +89,7 @@ const shareCodeStayle = {
     backgroundColor: Colors.light,
     padding: 1,
     borderRadius: 30,
-    width: '80%',
+    width: '82%',
     height: '75%', 
     alignContent: 'center',
     alignItems: 'center',

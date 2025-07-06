@@ -1,28 +1,29 @@
-import { View } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FixedCenterView = ({ yOffset = 0, style, ...props }) => {
-  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+  const insets = useSafeAreaInsets();
+  
+  const internalOffset = insets.bottom === 0 ? 10 : 0;
 
   return (
     <View
-      onLayout={({ nativeEvent }) => {
-        const { width, height } = nativeEvent.layout;
-        setOffset({ x: width / 2, y: height / 2 });
-      }}
       style={[
         {
           position: 'absolute',
-          top: '50%',
-          left: '50%',
+          top: screenHeight / 2 + yOffset - internalOffset,
+          left: screenWidth / 2,
           transform: [
-            { translateX: -offset.x },
-            { translateY: -offset.y + yOffset },
+            { translateX: -screenWidth / 2 },
+            { translateY: -screenHeight / 2 },
           ],
           width: '100%',
           alignItems: 'center',
         },
-        style, // allow additional styles to be passed
+        style,
       ]}
       {...props}
     />

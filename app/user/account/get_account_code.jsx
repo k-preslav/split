@@ -18,6 +18,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import ThemedText from '../../../components/common/themedText';
 import UserCode from '../../../components/special/userCode';
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal';
+import { deviceInfo } from '../../../global/deviceInfo';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
@@ -28,13 +29,30 @@ const GetAccountCode = () => {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
+  const [confettiCount, setConfettiCount] = React.useState(200);
+
+  useEffect(() => {
+    if (deviceInfo.platform === 'android') {
+      const ver = parseFloat(deviceInfo.osVersion);
+      if (ver == 10) {
+        setConfettiCount(100);
+      }
+      if (ver < 10) {
+        setConfettiCount(50);
+      }
+      if (ver <= 8) {
+        setConfettiCount(10);
+      }
+    }
+  }, [])
+
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
   }, []))
 
   return (
     <ThemedView>
-      <FixedCenterView yOffset={-95}>
+      <FixedCenterView yOffset={260}>
         <VerticalView style={{gap: 20}}>
             <BigText>{userDetails.isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
             <ThemedText fontSize={24}>Your code:</ThemedText>
@@ -56,7 +74,7 @@ const GetAccountCode = () => {
       <FixedBottomView>
         <BigButton
           loadingOnPress={true}
-          onPress={async() => {
+          onPress={() => {
             router.navigate('/')
           }}
         >
@@ -66,7 +84,7 @@ const GetAccountCode = () => {
 
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
         <ConfettiCannon
-          count={200}
+          count={confettiCount}
           origin={{x: screenWidth / 2, y: screenHeight}}
           fadeOut={true}
           explosionSpeed={200}

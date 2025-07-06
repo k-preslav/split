@@ -1,4 +1,4 @@
-import { ActivityIndicator, Button, Text, View } from 'react-native'
+import { ActivityIndicator, Button, Platform, Text, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Link, router } from 'expo-router'
 import { styles } from '../components/themes/styles'
@@ -8,12 +8,32 @@ import * as Font from 'expo-font';
 import ThemedModal from '../components/modals/themedModal'
 import ThemedView from '../components/views/themedView'
 import BigText from '../components/common/bigText'
+import { deviceInfo } from '../global/deviceInfo'
 
 const Index = () => {
   const { fetchUserProfile, setGesturesEnabled } = useUser();
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const handleHomeScreen = async () => {
+    // Get device info
+    try {
+      //deviceInfo.osVersion = DeviceInfo.getSystemVersion();
+      deviceInfo.platform = Platform.OS;
+      if (deviceInfo.platform === 'android') 
+        deviceInfo.osVersion = Platform.constants.Release;
+      else if (deviceInfo.platform === 'ios')
+        deviceInfo.osVersion = Platform.Version;
+
+      console.log('Device Info:', deviceInfo);
+    }
+    catch (err) {
+      console.error('Error fetching device info:', err);
+    }
+
+    //router.navigate('/user/account/get_account_code');
+    //return;
+
+    // Get user info and redirect
     try {
       const user = await account.get();   
       if (user) {

@@ -29,7 +29,7 @@ const SetAccountEmail = () => {
         <CurvedLine flipX text='Enter your email'/>
         <CurvedLine flipY flipX/>
 
-        <FixedCenterView yOffset={-95}>
+        <FixedCenterView yOffset={260}>
           <InputField keyboard='email' placeholder='cutipie@gonners.com' value={email} onChangeText={setEmail}/>
         </FixedCenterView>
 

@@ -91,12 +91,12 @@ const SetAccountPassword = () => {
         <CurvedLine text='Enter your pass'/>
         <CurvedLine flipY/>
 
-        <FixedCenterView yOffset={-95}>
+        <FixedCenterView yOffset={260}>
           <InputField keyboard='password' placeholder='•••••••••' value={password} onChangeText={setPassword}/>
         </FixedCenterView>
 
         <FixedBottomView>
-          <HorizontalView style={{gap: 10, width: '85%'}}>
+          <HorizontalView style={{gap: 10, width: '85%', paddingRight: 20,}}>
             <ActionButton 
             size={65}
               icon={<StepBack strokeWidth={2.5} />}

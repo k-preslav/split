@@ -16,18 +16,19 @@ const BigButton = ({
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   
-  const _internalPress = () => {
+  const _internalPress = async () => {
     if (enableHaptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     if (loadingOnPress) {
       setIsLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 5)); // Give time for the ui to update
     }
   };
   
   const handlePress = async () => {
-    _internalPress();
+    await _internalPress();
 
     try {
       await onPress?.();
@@ -58,7 +59,11 @@ const BigButton = ({
       ]}
     >
         {isLoading ? (
-          <ActivityIndicator size="small" style={styles.spinner} />
+          <ActivityIndicator 
+            size="small"
+            style={styles.spinner}
+            color={isPrimary ? Colors.textDark : Colors.textLight}
+          />
         ) : (
           <>
             <Text style={[styles.buttonText, {color: isPrimary ? Colors.textDark : Colors.textLight}]}>{children}</Text>

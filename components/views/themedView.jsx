@@ -1,12 +1,20 @@
 import { View } from 'react-native'
 import React from 'react'
 import { styles } from '../themes/styles'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const ThemedView = ({style, ...props}) => {
+  const insets = useSafeAreaInsets();
+
+  const customTopPadding = insets.top === 0 ? 20 : 0;
+  const customBottomPadding = insets.bottom === 0 ? 20 : 0;
+
   return (
     <SafeAreaView 
-      style={[styles.container, style]}
+      style={[styles.container, {
+        paddingTop: customTopPadding,
+        paddingBottom: customBottomPadding,
+      }, style]}
       {...props}
     />
   )

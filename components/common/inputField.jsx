@@ -1,6 +1,7 @@
 import { TextInput } from 'react-native';
 import React from 'react';
 import { styles } from '../themes/styles';
+import { Colors } from '../themes/colors';
 
 /**
  * @typedef {'default' | 'email' | 'password' | 'numeric' | 'number-pad' | 'phone-pad'} KeyboardType
@@ -46,6 +47,7 @@ const InputField = ({
     <TextInput
       style={[styles.inputField, style]}
       placeholder={placeholder}
+      placeholderTextColor={Colors.textGray}
       keyboardType={keyboardType}
       secureTextEntry={isPassword}
       autoCapitalize={autoCapitalize}

@@ -25,7 +25,7 @@ const UserWelcome = () => {
       <CurvedLine/>
       <CurvedLine flipY/>
 
-      <FixedCenterView yOffset={-95}>
+      <FixedCenterView yOffset={260}>
         <BigText>Welcome 👋</BigText>
       </FixedCenterView>
 

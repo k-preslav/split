@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Animated, Button, SafeAreaView, TextInput, Text, View, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Animated, Button, SafeAreaView, TextInput, Text, View, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
 import { styles } from '../../../components/themes/styles';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,13 +29,19 @@ const SetAccountName = () => {
     setLoading(true);
 
     await register(userDetails.name, userDetails.email, userDetails.password).then(async(res) => {
-      if (res.code) { // If there is an error code, the registration failed
-        console.log(res.message);
+      if (res.code === 400) { // If there is an error code, the registration failed
+        userDetails.name = '';
+        userDetails.email = '';
+        userDetails.password = '';
+        
+        Alert.alert("Invalid email")
+        router.push('/user/account/set_account_email');
+      }
+      else if (!res.code) {
+        setLoading(false);
+        router.push('/user/account/get_account_code');
       }
     });
-
-    setLoading(false);
-    router.push('/user/account/get_account_code');
   };
 
   return (
@@ -44,7 +50,7 @@ const SetAccountName = () => {
         <CurvedLine flipX text='Enter your name'/>
         <CurvedLine flipX flipY/>
 
-        <FixedCenterView yOffset={-95}>
+        <FixedCenterView yOffset={260}>
           <InputField placeholder='John' value={accountName} onChangeText={setAccountName}/>
         </FixedCenterView>
 

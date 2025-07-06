@@ -62,7 +62,11 @@ const ActionButton = ({
       ]}
     >
         {isLoading ? (
-          <ActivityIndicator size="small" style={styles.spinner} />
+          <ActivityIndicator 
+            size="small"
+            style={styles.spinner}
+            color={isPrimary ? Colors.textDark : Colors.textLight}
+          />
         ) : (
           <>
             {icon && <>{React.cloneElement(icon, {
