@@ -15,11 +15,15 @@ import VerticalView from '../../../components/views/verticalView';
 import HorizontalView from '../../../components/views/horizontalView';
 import ActionButton from '../../../components/common/actionButton';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import ThemedText from '../../../components/common/themedText';
+import UserCode from '../../../components/special/userCode';
+import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
 
   const {setGesturesEnabled} = useUser();
+  const [shareModalVisible, setShareModalVisible] = React.useState(false);
 
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
@@ -33,17 +37,17 @@ const GetAccountCode = () => {
       <FixedCenterView yOffset={-95}>
         <VerticalView style={{gap: 20}}>
             <BigText>{userDetails.isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
-            <Text>Your code:</Text>
+            <ThemedText fontSize={24}>Your code:</ThemedText>
           </VerticalView>
-          <HorizontalView style={{marginTop: 10, gap: 10}}>
-            <Text>{userDetails.userProfile.userCode}</Text>
+          <HorizontalView style={{marginTop: 10, gap: 5}}>
+            <UserCode userCode={userCode}></UserCode>
             <ActionButton
               icon={<ShareIcon strokeWidth={2.5} />}
-              size={45}
+              size={40}
               isPrimary={false}
               isRound={false}
               onPress={() => {
-                navigator.clipboard.writeText(userCode);
+                setShareModalVisible(true);
               }}
             />
           </HorizontalView>
@@ -52,9 +56,8 @@ const GetAccountCode = () => {
       <FixedBottomView>
         <BigButton
           loadingOnPress={true}
-          onPress={async () => {
-            userDetails.password = password;
-            await handleSubmit();
+          onPress={async() => {
+            router.navigate('/')
           }}
         >
           Got it!
@@ -69,9 +72,15 @@ const GetAccountCode = () => {
           explosionSpeed={200}
           fallSpeed={2000}
           autoStart={true}
-          autoStartDelay={300}
+          autoStartDelay={400}
         />
       </View>
+
+      <ShareUserCodeModal 
+        userCode={userCode} 
+        visible={shareModalVisible} 
+        onClose={() => setShareModalVisible(false)}
+      />
     </ThemedView>
   );
 };

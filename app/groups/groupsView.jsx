@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useUser } from '../../hooks/useUser'
 import { createNewGroup, getGroupsByOwnerId } from '../../lib/groupsApi'
 import { userDetails } from '../../lib/userDetails'
+import ThemedView from '../../components/views/themedView'
 
 const Groups = () => {
   const {setGesturesEnabled, logout} = useUser();

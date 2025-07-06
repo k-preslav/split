@@ -26,6 +26,18 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    modalBox: {
+        backgroundColor: Colors.backgroundSecondary,
+        width: '100%',
+        padding: 12,
+        borderTopLeftRadius: 38.5,
+        borderTopRightRadius: 38.5,
+    },
+
     bigText: {
         fontSize: 42,
         color: Colors.textLight,
@@ -63,7 +75,7 @@ export const styles = StyleSheet.create({
         height: 50,
         borderWidth: 1,
         borderRadius: 99,
-        borderColor: Colors.light,
+        borderColor: Colors.lightGray,
         paddingHorizontal: 15,
         fontFamily: 'Satoshi-Regular',
         fontSize: 18,
