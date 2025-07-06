@@ -73,11 +73,9 @@ const Index = () => {
     }
   }, [fontsLoaded]);
 
-  const [modalVisible, setModalVisible] = useState(true);
-
   return (
     <ThemedView>
-      <ActivityIndicator size='large'></ActivityIndicator>
+      <ActivityIndicator size='large' color='white'></ActivityIndicator>
     </ThemedView>
   )
 }

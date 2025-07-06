@@ -51,7 +51,7 @@ const createGroup = () => {
     }
 
     friends.push(friend);
-    console.log("Friend added:", friend.username);
+    console.log("Friend added:", friend.name);
 
     closeModal();
   }
@@ -64,7 +64,7 @@ const createGroup = () => {
   return (
     <SafeAreaView style={styles.container}>
       {friends.map((friend, index) => (
-          <Text key={friend+index}>{friend.username}</Text>
+          <Text key={friend+index}>{friend.name}</Text>
       ))}
 
       <View style={styles.almostCenter}>

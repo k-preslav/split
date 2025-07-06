@@ -9,9 +9,9 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [areGesturesEnabled, setGesturesEnabled] = useState(true);
 
-  async function register(username, email, password) {
+  async function register(name, email, password) {
     try {
-      await account.create(ID.unique(), email, password, username);
+      await account.create(ID.unique(), email, password, name);
       console.log("User registered");
 
       await login(email, password).then(async (res) => {
@@ -73,7 +73,7 @@ export function UserProvider({ children }) {
           ID.unique(),
           {
             userId: userData.$id,
-            username: userData.name,
+            name: userData.name,
             email: userData.email,
             userCode: code,
           }
