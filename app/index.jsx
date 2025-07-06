@@ -9,6 +9,7 @@ import ThemedModal from '../components/modals/themedModal'
 import ThemedView from '../components/views/themedView'
 import BigText from '../components/common/bigText'
 import { deviceInfo } from '../global/deviceInfo'
+import { getUserProfilePicImg, getUserProfilePicUrl } from '../lib/userProfilePic'
 
 const Index = () => {
   const { fetchUserProfile, setGesturesEnabled } = useUser();
@@ -30,14 +31,12 @@ const Index = () => {
       console.error('Error fetching device info:', err);
     }
 
-    //router.navigate('/user/account/get_account_code');
-    //return;
-
     // Get user info and redirect
     try {
-      const user = await account.get();   
+      const user = await account.get();
       if (user) {
         const profile = await fetchUserProfile(user.$id);
+
         if (profile) {
           router.replace('/groups/groupsView');
         }

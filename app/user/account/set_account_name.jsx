@@ -17,38 +17,37 @@ import InputField from '../../../components/common/inputField';
 const SetAccountName = () => {
   const insets = useSafeAreaInsets();
   const [accountName, setAccountName] = useState('');
-  const { user, register, setGesturesEnabled } = useUser();
-
-  const [isLoading, setLoading] = useState(false);
+  const { register, setGesturesEnabled } = useUser();
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
   }, []))
 
   const handleSubmit = async () => {
-    setLoading(true);
-
-    await register(userDetails.name, userDetails.email, userDetails.password).then(async(res) => {
+    userDetails._name = accountName;
+    
+    await register(userDetails._name, userDetails._email, userDetails._password).then(async(res) => {
       if (res.code === 400) { // If there is an error code, the registration failed
-        userDetails.name = '';
-        userDetails.email = '';
-        userDetails.password = '';
+        userDetails._name = '';
+        userDetails._email = '';
+        userDetails._password = '';
         
         Alert.alert("Invalid email")
         router.push('/user/account/set_account_email');
       }
-      else if (!res.code) {
-        setLoading(false);
+      
+      if (!res.code) {
         router.push('/user/account/get_account_code');
       }
+      else console.error("Register error:", res, res.code);
     });
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <ThemedView>
-        <CurvedLine flipX text='Enter your name'/>
-        <CurvedLine flipX flipY/>
+        <CurvedLine text='Enter your name'/>
+        <CurvedLine flipY/>
 
         <FixedCenterView yOffset={260}>
           <InputField placeholder='John' value={accountName} onChangeText={setAccountName}/>
@@ -59,7 +58,6 @@ const SetAccountName = () => {
             icon={<ArrowRight strokeWidth={2.5} />}
             loadingOnPress={true}
             onPress={async () => {
-              userDetails.name = accountName;
               await handleSubmit();
             }}
           >Next</BigButton>

@@ -75,6 +75,7 @@ export function UserProvider({ children }) {
             userId: userData.$id,
             name: userData.name,
             email: userData.email,
+            profilePicId: userDetails._profilePicId || '',
             userCode: code,
           }
         );

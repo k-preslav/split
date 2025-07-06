@@ -54,7 +54,7 @@ const GetAccountCode = () => {
     <ThemedView>
       <FixedCenterView yOffset={260}>
         <VerticalView style={{gap: 20}}>
-            <BigText>{userDetails.isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
+            <BigText>{userDetails._isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
             <ThemedText fontSize={24}>Your code:</ThemedText>
           </VerticalView>
           <HorizontalView style={{marginTop: 10, gap: 5}}>

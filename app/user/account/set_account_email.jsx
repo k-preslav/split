@@ -37,7 +37,7 @@ const SetAccountEmail = () => {
           <BigButton
             icon={<ArrowRight strokeWidth={2.5} />}
             onPress={() => {
-              userDetails.email = email;
+              userDetails._email = email;
               router.push('/user/account/set_account_password');
             }}
           >Next</BigButton>

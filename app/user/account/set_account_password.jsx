@@ -34,13 +34,13 @@ const SetAccountPassword = () => {
 
     await logout();
 
-    const exists = await doesUserExistByEmail(userDetails.email);
+    const exists = await doesUserExistByEmail(userDetails._email);
     console.log("User exists:", exists);
 
-    userDetails.isNewProfile = !exists;
+    userDetails._isNewProfile = !exists;
 
     if (exists) {
-      await login(userDetails.email, userDetails.password).then(async (res) =>{
+      await login(userDetails._email, userDetails._password).then(async (res) =>{
         if (!res.code) { // If there is no error code, the login was successful
           router.push('/user/account/get_account_code')
         }
@@ -71,14 +71,14 @@ const SetAccountPassword = () => {
         return;
       }
 
-      if (userDetails.email.length < 1) {
+      if (userDetails._email.length < 1) {
         Alert.alert("Invalid email", "Email can not be empty.");
         setInvalidCred(true);
         setLoading(false);
         return;
       }
 
-      router.push('/user/account/set_account_name');
+      router.push('/user/account/set_account_profilePic');
       return;
     }
     
@@ -111,7 +111,7 @@ const SetAccountPassword = () => {
               icon={<ArrowRight strokeWidth={2.5} />}
               loadingOnPress={true}
               onPress={async () => {
-                userDetails.password = password;
+                userDetails._password = password;
                 await handleSubmit();
               }}
             >Next</BigButton>
