@@ -121,8 +121,9 @@ const SetAccountProfilePic = () => {
             icon={<ArrowRight strokeWidth={2.5} />}
             loadingOnPress={true}
             onPress={handleSubmit}
+            isPrimary={accountImage !== null}
           >
-            Next
+            {accountImage ? 'Next' : 'Skip'}
           </BigButton>
         </FixedBottomView>
       </ThemedView>
