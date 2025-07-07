@@ -21,9 +21,29 @@ const themePlayground = () => {
       <CurvedLine text='This is curvy 😋'/>
       <CurvedLine flipY/>
       
-      <FixedCenterView yOffset={-95}>
+      <FixedCenterView yOffset={260}>
         <BigText>BIG Text</BigText>
+      
+        <ThemedButton
+          text='Hi'
+          sizeX={100}
+          sizeY={50}
+          isRound={false}
+          isPrimary={true}
+          loadingOnPress={true}
+          size={65}
+          icon={<X strokeWidth={2.5} />}
+        />
+
+        <ActionButton 
+          isRound={true}
+          isPrimary={false}
+          size={45}
+          loadingOnPress={true}
+          icon={<PiIcon strokeWidth={2.5} />}
+        />
       </FixedCenterView>
+
 
       <FixedBottomView>
         <VerticalView style={{gap: 10}}>
@@ -71,26 +91,23 @@ const themePlayground = () => {
           />
         </HorizontalView>
         
-        <VerticalView style={{gap: 10}}>          <ThemedButton
+        <VerticalView style={{gap: 10}}>          
+          <ThemedButton
+            text="Let's go"
             loadingOnPress={true}
             enableHaptic={true}
             onPress={() => console.log('Button Pressed')}
             icon={<ArrowRight strokeWidth={2.5} />}
-          >
-            Let's go
-          </ThemedButton>
+          />
 
           <ThemedButton
             isPrimary={false}
             loadingOnPress={true}
             enableHaptic={true}
             icon={<ShareIcon strokeWidth={2.5} />}
-          >
-            Share
-          </ThemedButton>
+          />
         </VerticalView>
       </FixedBottomView>
-
     </ThemedView>
   )
 }

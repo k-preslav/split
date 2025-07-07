@@ -12,13 +12,18 @@ export const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
         width: '100%',
-        height: '100%',
+        height: '100%'
     },
     fixedTop: {
-        justifyContent: 'flex-start',
-        alignItems: 'center',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
         width: '100%',
+        zIndex: 99,
     },
+
+
     horizontalView: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -89,7 +94,6 @@ export const styles = StyleSheet.create({
     },
 
     spinner: {
-        transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }],
         color: "black"
     },
 })

@@ -3,7 +3,7 @@ import React from 'react'
 import ThemedText from './themedText'
 import { Colors } from '../themes/colors'
 
-const NameBar = ({name='No name', fontSize=22, style, ...props}) => {
+const NameBar = ({name='-', fontSize=22, style, ...props}) => {
   return (
     <View style={[nameBarStyles.container, style]} {...props}>
       <ThemedText fontSize={fontSize} fontWeight={"Medium"}>{name}</ThemedText>

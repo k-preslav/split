@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { Text, StyleSheet, ActivityIndicator, View, PixelRatio } from 'react-native';
 import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
@@ -18,8 +18,11 @@ const ThemedButton = ({
   sizeY = null,
   fontSize = 21,
   fontWeight = 'Bold',
+  extraLightWhenSecondary = false,
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
+
+  const fontScale = PixelRatio.getFontScale();
   
   const _internalPress = async () => {
     if (enableHaptic) {
@@ -51,7 +54,13 @@ const ThemedButton = ({
       onPress={handlePress}
       style={[
         styles.themedButton,
-        { backgroundColor: isPrimary ? Colors.buttonPrimary : Colors.buttonSecondary },
+        {
+          backgroundColor: isPrimary
+            ? Colors.buttonPrimary
+            : extraLightWhenSecondary
+            ? Colors.buttonSecondaryLighter
+            : Colors.buttonSecondary
+        },
         (sizeX && sizeY) && { width: sizeX, height: sizeY },
         { borderRadius: isRound ? (sizeX ? sizeX / 2 : 30) : 15 },
         isPrimary && {
@@ -67,7 +76,9 @@ const ThemedButton = ({
       {isLoading ? (
         <ActivityIndicator
           size="small"
-          style={styles.spinner}
+          style={[styles.spinner, {
+            transform: [{ scaleX: sizeY > 0 ? sizeY * 0.025 : 1.5 }, { scaleY: sizeY > 0 ? sizeY * 0.025 : 1.5 }],
+          }]}
           color={isPrimary ? Colors.textDark : Colors.textLight}
         />
       ) : (
@@ -76,7 +87,7 @@ const ThemedButton = ({
             style={[styles.buttonText, 
             { 
               color: isPrimary ? Colors.textDark : Colors.textLight ,
-              fontSize: fontSize,
+              fontSize: fontSize / fontScale,
               fontFamily: `Satoshi-${fontWeight}`,
             }]}>
             {text}
@@ -84,7 +95,7 @@ const ThemedButton = ({
           {icon &&
             React.cloneElement(icon, {
               color: isPrimary ? Colors.textDark : Colors.textLight,
-              size: sizeX ? sizeX * 0.43 : undefined,
+              size: sizeY ? sizeY * 0.43 : undefined,
             })}
         </View>
       )}

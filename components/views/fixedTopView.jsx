@@ -1,15 +1,15 @@
-import { View } from 'react-native'
-import React from 'react'
-import { Colors } from '../themes/colors'
-import { styles } from '../themes/styles' 
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { styles } from '../themes/styles';
 
-const FixedTopView = ({style, ...props}) => {
+const FixedTopView = ({ style, children }) => {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View 
-      style={[styles.fixedTop, style]}
-      {...props}
-    />
-  )
-}
+    <View style={[styles.fixedTop, { top: insets.top }, style]}>
+      {children}
+    </View>
+  );
+};
 
-export default FixedTopView
+export default FixedTopView;

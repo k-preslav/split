@@ -1,4 +1,4 @@
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, PixelRatio } from 'react-native';
 import React from 'react';
 import { Colors } from '../themes/colors';
 import * as Clipboard from 'expo-clipboard';
@@ -6,7 +6,9 @@ import * as Haptics from 'expo-haptics';
 import { Text } from 'react-native';
 import { moderateScale, moderateVerticalScale } from 'react-native-size-matters';
 
-const UserCode = ({ userCode = '', ...props }) => {
+const MonospacedText = ({ userCode = '', fontSize=16, ...props }) => {
+  const fontScale = PixelRatio.getFontScale();
+
   const onPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
     if (userCode) {
@@ -20,7 +22,8 @@ const UserCode = ({ userCode = '', ...props }) => {
         style={{
           flexDirection: 'row',
           backgroundColor: Colors.primary,
-          borderRadius: 16,
+          borderRadius: 12,
+          padding: 6,
           alignSelf: 'center',
           shadowColor: Colors.primary,
           shadowOffset: { width: 0, height: 0 },
@@ -35,7 +38,7 @@ const UserCode = ({ userCode = '', ...props }) => {
             key={idx}
             style={{
               fontFamily: 'GeistMono',
-              fontSize: moderateScale(20),
+              fontSize: fontSize / fontScale,
               color: Colors.textDark,
               width: moderateScale(18),
               textAlign: 'center',
@@ -50,4 +53,4 @@ const UserCode = ({ userCode = '', ...props }) => {
   );
 };
 
-export default UserCode;
+export default MonospacedText;

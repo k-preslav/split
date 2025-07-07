@@ -48,12 +48,6 @@ const GroupComponent = ({group, isActive}) => {
           centerY={layout.height / 2}
         />
       </View>
-
-      {/* <NameBar name={'Netflix split'} /> */}
-      <Button
-        title="Logout"
-        onPress={logout}
-        color={Colors.primary} />
     </View>
 
   );
@@ -64,8 +58,8 @@ export default GroupComponent;
 const groupStyles = StyleSheet.create({
   container: {
     width: '100%',
-    height: 300,
     alignItems: 'center',
+    bottom: 50,
     justifyContent: 'center',
   },
   groupIconContainer: {

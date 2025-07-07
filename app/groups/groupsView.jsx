@@ -1,6 +1,6 @@
 import { FlatList, View, Dimensions } from 'react-native';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useUser } from '../../hooks/useUser';
 import { getGroupsByOwnerId } from '../../lib/groupsApi';
 import ThemedView from '../../components/views/themedView';
@@ -10,13 +10,26 @@ import HorizontalView from '../../components/views/horizontalView';
 import ThemedButton from '../../components/common/themedButton';
 import FixedTopView from '../../components/views/fixedTopView';
 import FixedCenterView from '../../components/views/fixedCenterView';
+import { Bolt, Plus, Settings, Settings2 } from 'lucide-react-native';
+import AnchorView from '../../components/views/anchorView';
+import UserCode from '../../components/user/userCode';
+import UserCodeShare from '../../components/user/userCodeShare';
+import FixedBottomView from '../../components/views/fixedBottomView';
+import GroupPageIndicator from '../../components/groups/groupPageIndicator';
+import NameBar from '../../components/common/nameBar';
+import { userDetails } from '../../lib/userDetails';
+import CreateEditGroupModal from '../../components/modals/createEditGroupModal';
 
 const { width } = Dimensions.get('window');
 
 const Groups = () => {
-  const { setGesturesEnabled } = useUser();
+  const { setGesturesEnabled, logout } = useUser();
   const [groups, setGroups] = useState([]);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [activeGroup, setActiveGroup] = useState(null);
+
+  const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
+
   const flatListRef = useRef(null);
   const scrollPosition = useRef(0);
   const previousScrollPosition = useRef(0);
@@ -55,7 +68,7 @@ const Groups = () => {
   }, []);
 
   const handleGroupChange = (group, index) => {
-    console.log(`Group changed to: ${group.name} at index ${index}`);
+    setActiveGroup(group);
   };
 
   const handleScroll = (event) => {
@@ -93,16 +106,48 @@ const Groups = () => {
 
   return (
     <ThemedView>
-      <FixedTopView style={{height: 10, marginTop: 5}}>
-        <HorizontalView>
-          {/* <ThemedButton
-            isRound={false}
-            isPrimary={false}
-            sizeX={150}
-            sizeY={50}
-          >Create group</ThemedButton> */}
+      <FixedTopView style={{marginTop: 5}}>
+        <View
+          style={{
+            width: '100%',
+            paddingHorizontal: 10,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <AnchorView>
+            <HorizontalView>
+              <UserCode fontSize={20} userCode={userDetails?.userProfile?.userCode || "------"}/>
+            </HorizontalView>
+          </AnchorView>
 
-        </HorizontalView>
+          <AnchorView>
+            <HorizontalView style={{ gap: 5 }}>
+              <ThemedButton
+                text="Create group"
+                icon={<Plus strokeWidth={2.5} />}
+                isRound={false}
+                isPrimary={false}
+                sizeX={145}
+                sizeY={44}
+                fontSize={16}
+                onPress={() => setCreateEditGroupModalVisible(true)}
+              />
+              <ActionButton 
+                icon={<Bolt strokeWidth={2.5} />}
+                size={44}
+                isPrimary={false}
+                isRound={false}
+                loadingOnPress={true}
+                onPress={async() => {
+                  await logout();
+                  router.push('/');
+                }}
+              />
+            </HorizontalView>
+          </AnchorView>
+        </View>
       </FixedTopView>
 
       <FlatList
@@ -132,6 +177,19 @@ const Groups = () => {
             />
           </View>
         )}
+      />
+
+      <FixedBottomView style={{ position: 'absolute', height: '50%' }}>
+        <NameBar fontSize={18} name={groups[activeGroupIndex]?.name  || '-'}/>
+        <GroupPageIndicator pagesCount={groups.length} activePage={activeGroupIndex}/>
+      </FixedBottomView>
+      <FixedBottomView style={{height: 'auto'}}>
+        <ThemedButton isPrimary={false}/>
+      </FixedBottomView>
+
+      <CreateEditGroupModal 
+        visible={createEditGroupModalVisible} 
+        onClose={() => setCreateEditGroupModalVisible(false)}
       />
     </ThemedView>
   );

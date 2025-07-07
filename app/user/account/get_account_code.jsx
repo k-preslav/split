@@ -15,10 +15,10 @@ import HorizontalView from '../../../components/views/horizontalView';
 import ActionButton from '../../../components/common/actionButton';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import ThemedText from '../../../components/common/themedText';
-import UserCode from '../../../components/special/userCode';
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal';
 import { deviceInfo } from '../../../global/deviceInfo';
 import ThemedButton from '../../../components/common/themedButton';
+import UserCodeShare from '../../../components/user/userCodeShare';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
@@ -57,18 +57,7 @@ const GetAccountCode = () => {
             <BigText>{userDetails._isNewProfile ? "Done 🎉" : "You’re back! 😎"}</BigText>
             <ThemedText fontSize={24}>Your code:</ThemedText>
           </VerticalView>
-          <HorizontalView style={{marginTop: 10, gap: 5}}>
-            <UserCode userCode={userCode}></UserCode>
-            <ActionButton
-              icon={<ShareIcon strokeWidth={2.5} />}
-              size={40}
-              isPrimary={false}
-              isRound={false}
-              onPress={() => {
-                setShareModalVisible(true);
-              }}
-            />
-          </HorizontalView>
+          <UserCodeShare userCode={userCode} onShare={async() => setShareModalVisible(true)}/>
       </FixedCenterView>
 
       <FixedBottomView>        

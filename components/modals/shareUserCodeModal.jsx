@@ -73,8 +73,10 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
           />
           <ThemedButton 
             text='Share'
+            isPrimary={true}
+            isRound={true}
             icon={<Forward strokeWidth={2.5} />}
-            style={{width: '72%', height: moderateVerticalScale(70)}}
+            style={{width: '72%', height: moderateVerticalScale(70), borderRadius: 99}}
             loadingOnPress={true}
             onPress={handleShareExternal}
           />

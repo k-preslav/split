@@ -1,22 +1,7 @@
-import { TextInput } from 'react-native';
-import React from 'react';
-import { styles } from '../themes/styles';
-import { Colors } from '../themes/colors';
-
-/**
- * @typedef {'default' | 'email' | 'password' | 'numeric' | 'number-pad' | 'phone-pad'} KeyboardType
- */
-
-/**
- * @param {{
- *   placeholder?: string,
- *   keyboard?: KeyboardType,
- *   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters',
- *   value?: string,
- *   style?: any
- *   onChangeText?: (text: string) => void,
- * }} props
- */
+import React from "react";
+import { TextInput } from "react-native";
+import { styles } from "../themes/styles";
+import { Colors } from "../themes/colors";
 
 const InputField = ({
   placeholder,
@@ -25,23 +10,22 @@ const InputField = ({
   value,
   style,
   onChangeText = () => {},
+  onKeyboardSubmit = () => {},
   ...props
 }) => {
   const isPassword = keyboard === 'password';
   const isEmail = keyboard === 'email';
-  const keyboardType = isPassword ? 'default' : (isEmail ? "email-address" : keyboard);
+  const keyboardType = isPassword ? 'default' : (isEmail ? 'email-address' : keyboard);
 
   const [canBeCentered, setCanBeCentered] = React.useState(true);
+
   const handleTextChange = (text) => {
-
-
     if (text.length < 20) {
       setCanBeCentered(true);
-    }
-    else {
+    } else {
       setCanBeCentered(false);
     }
-  }
+  };
 
   return (
     <TextInput
@@ -53,12 +37,14 @@ const InputField = ({
       autoCapitalize={autoCapitalize}
       multiline={false}
       numberOfLines={1}
+      returnKeyType="done"
       value={value}
       textAlign={canBeCentered ? 'center' : 'left'}
       onChangeText={(text) => {
         handleTextChange(text);
         onChangeText(text);
       }}
+      onSubmitEditing={onKeyboardSubmit}
       {...props}
     />
   );

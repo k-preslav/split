@@ -5,7 +5,7 @@ import { getUserProfileByCode } from '../../lib/getUser';
 import { getUserProfilePicUrl } from '../../lib/userProfilePic';
 import { Colors } from '../themes/colors';
 
-const UserIcon = ({ friend, nameBarPosition = 'bottom' }) => {
+const UserIcon = ({ user, nameBarPosition = 'bottom' }) => {
   const [showNamebar, setShowNamebar] = React.useState(true);
   const [profileImageUrl, setProfileImageUrl] = React.useState('');
   const [userDetails, setUserDetails] = React.useState(null);
@@ -19,9 +19,9 @@ const UserIcon = ({ friend, nameBarPosition = 'bottom' }) => {
 
   const fetchProfileData = async () => {
     try {
-      const userDetails = await getUserProfileByCode(friend.userCode);
+      const userDetails = await getUserProfileByCode(user.userCode);
       if (!userDetails) {
-        console.error('User details not found for userCode:', friend.userCode);
+        console.error('User details not found for userCode:', user.userCode);
         return;
       }
 
@@ -36,7 +36,7 @@ const UserIcon = ({ friend, nameBarPosition = 'bottom' }) => {
 
   useEffect(() => {
     fetchProfileData();
-  }, [friend]);
+  }, [user]);
 
   return (
     <TouchableWithoutFeedback onPress={toggleNamebar}>
@@ -44,7 +44,7 @@ const UserIcon = ({ friend, nameBarPosition = 'bottom' }) => {
         {nameBarPosition === 'top' && showNamebar && (
           <NameBar
             fontSize={12}
-            name={userDetails?.name || 'No name'}
+            name={userDetails?.name || '-'}
             style={{
               paddingVertical: 2,
               paddingHorizontal: 5,
@@ -75,7 +75,7 @@ const UserIcon = ({ friend, nameBarPosition = 'bottom' }) => {
         {nameBarPosition === 'bottom' && showNamebar && (
           <NameBar
             fontSize={12}
-            name={userDetails?.name || 'No name'}
+            name={userDetails?.name || '-'}
             style={{
               paddingVertical: 2,
               paddingHorizontal: 7,

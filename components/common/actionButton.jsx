@@ -4,6 +4,7 @@ import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../themes/colors';
+import { scale } from 'react-native-size-matters';
 
 const ActionButton = ({
   onPress,
@@ -18,13 +19,14 @@ const ActionButton = ({
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   
-  const _internalPress = () => {
+  const _internalPress = async () => {
     if (enableHaptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     if (loadingOnPress) {
       setIsLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 5)); // Give time for the ui to update
     }
   };
   
@@ -64,7 +66,9 @@ const ActionButton = ({
         {isLoading ? (
           <ActivityIndicator 
             size="small"
-            style={styles.spinner}
+            style={[styles.spinner, {
+              transform: [{ scaleX: size * 0.02  }, { scaleY: size * 0.02 }],
+            }]}
             color={isPrimary ? Colors.textDark : Colors.textLight}
           />        ) : (
             icon && React.cloneElement(icon, {

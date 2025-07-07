@@ -12,5 +12,7 @@ export const Colors = {
 
   buttonPrimary: '#EBFF57',
   buttonSecondary: '#2D2D2D',
-  buttonSecondaryLighter: '#373737'
+  buttonSecondaryLighter: '#373737',
+
+  red: '#a62929',
 }

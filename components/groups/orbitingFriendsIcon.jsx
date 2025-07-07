@@ -1,7 +1,7 @@
 // OrbitingFriendIcon.js
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import UserIcon from './userIcon';
+import UserIcon from '../user/userIcon';
 import { Colors } from '../themes/colors';
 import { Check, Clock } from 'lucide-react-native';
 import { deviceInfo } from '../../global/deviceInfo';
@@ -28,7 +28,7 @@ function getRandomEndRotation(startRotation) {
 
 const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 80 }, ref) => {
   const [rotation, setRotation] = useState(getRandomStartRotation());
-  const radius = 140;
+  const radius = 135;
 
   const badgeScales = useRef(friends.map(() => new Animated.Value(0))).current;
   const animationFrameRef = useRef(null);
@@ -122,7 +122,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
         const x = radius * Math.cos(angle);
         const y = radius * Math.sin(angle);
 
-        const badgeRadius = 45;
+        const badgeRadius = 42;
         const badgeX = badgeRadius * Math.cos(angle + Math.PI);
         const badgeY = badgeRadius * Math.sin(angle + Math.PI);
 
@@ -133,13 +133,13 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
               styles.orbitingIcon,
               {
                 position: 'absolute',
-                left: centerX + x - 45,
-                top: centerY + y - 45,
+                left: centerX + x - (85 / 2),
+                top: centerY + y - (85 / 2),
               },
             ]}
           >
             <UserIcon 
-              friend={friend} 
+              user={friend} 
               nameBarPosition={y < 0 ? 'top' : 'bottom'}
             />
 
@@ -173,8 +173,8 @@ export default OrbitingFriendIcon;
 
 const styles = StyleSheet.create({
   orbitingIcon: {
-    width: 90,
-    height: 90,
+    width: 85,
+    height: 85,
     borderRadius: 99,
     alignItems: 'center',
     justifyContent: 'center',

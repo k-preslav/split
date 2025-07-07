@@ -5,7 +5,7 @@ import { Colors } from '../themes/colors';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 
-const UserCode = ({ userCode, ...props }) => {
+const UserCode = ({ userCode, fontSize, ...props }) => {
   const onPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
 
@@ -28,14 +28,14 @@ const UserCode = ({ userCode, ...props }) => {
           backgroundColor: Colors.primary,
           shadowColor: Colors.primary,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.3,
-          shadowRadius: 25,
+          shadowOpacity: 0.15,
+          shadowRadius: 20,
           elevation: 10,
           ...props.style,
         }}
       >
         <MonospacedText
-          fontSize={20}
+          fontSize={fontSize}
           color={Colors.textDark}
           userCode={userCode}
         >
