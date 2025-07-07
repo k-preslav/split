@@ -9,7 +9,6 @@ import CurvedLine from '../../../components/special/curveLine';
 import FixedCenterView from '../../../components/views/fixedCenterView';
 import BigText from '../../../components/common/bigText';
 import FixedBottomView from '../../../components/views/fixedBottomView';
-import BigButton from '../../../components/common/bigButton';
 import { ArrowRight, ShareIcon } from 'lucide-react-native';
 import VerticalView from '../../../components/views/verticalView';
 import HorizontalView from '../../../components/views/horizontalView';
@@ -19,6 +18,7 @@ import ThemedText from '../../../components/common/themedText';
 import UserCode from '../../../components/special/userCode';
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal';
 import { deviceInfo } from '../../../global/deviceInfo';
+import ThemedButton from '../../../components/common/themedButton';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
@@ -71,15 +71,14 @@ const GetAccountCode = () => {
           </HorizontalView>
       </FixedCenterView>
 
-      <FixedBottomView>
-        <BigButton
+      <FixedBottomView>        
+        <ThemedButton
+          text='Got it!'
           loadingOnPress={true}
           onPress={() => {
             router.navigate('/')
           }}
-        >
-          Got it!
-        </BigButton>
+        />
       </FixedBottomView>
 
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>

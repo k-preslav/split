@@ -3,7 +3,7 @@ import React from 'react'
 import BigText from '../components/common/bigText'
 import ThemedView from '../components/views/themedView'
 import FixedCenterView from '../components/views/fixedCenterView'
-import BigButton from '../components/common/bigButton'
+import ThemedButton from '../components/common/themedButton'
 import { ArrowRight, BanIcon, Check, CheckCheck, PiIcon, Share2, ShareIcon, X } from 'lucide-react-native'
 import { router } from 'expo-router'
 import ActionButton from '../components/common/actionButton'
@@ -71,24 +71,23 @@ const themePlayground = () => {
           />
         </HorizontalView>
         
-        <VerticalView style={{gap: 10}}>
-          <BigButton
+        <VerticalView style={{gap: 10}}>          <ThemedButton
             loadingOnPress={true}
             enableHaptic={true}
             onPress={() => console.log('Button Pressed')}
             icon={<ArrowRight strokeWidth={2.5} />}
           >
             Let's go
-          </BigButton>
+          </ThemedButton>
 
-          <BigButton
+          <ThemedButton
             isPrimary={false}
             loadingOnPress={true}
             enableHaptic={true}
             icon={<ShareIcon strokeWidth={2.5} />}
           >
             Share
-          </BigButton>
+          </ThemedButton>
         </VerticalView>
       </FixedBottomView>
 

@@ -3,8 +3,9 @@ import { Modal, View } from 'react-native';
 import { styles } from '../themes/styles';
 import ActionButton from '../common/actionButton';
 import { X } from 'lucide-react-native';
+import ReactNativeModal from 'react-native-modal';
 
-const ThemedModal = ({ visible, onClose, height, children }) => {
+const ThemedModal = ({ visible, onClose, height, children }) => { 
   return (
     <Modal
       visible={visible}

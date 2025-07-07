@@ -14,6 +14,11 @@ export const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+    fixedTop: {
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        width: '100%',
+    },
     horizontalView: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -45,7 +50,7 @@ export const styles = StyleSheet.create({
         fontFamily: 'Satoshi-Medium',
     },
 
-    bigButton: {
+    themedButton: {
         flexDirection: 'row',
         gap: 5,
         alignItems: 'center',

@@ -10,7 +10,7 @@ import CurvedLine from '../../../components/special/curveLine';
 import FixedCenterView from '../../../components/views/fixedCenterView';
 import BigText from '../../../components/common/bigText';
 import FixedBottomView from '../../../components/views/fixedBottomView';
-import BigButton from '../../../components/common/bigButton';
+import ThemedButton from '../../../components/common/themedButton';
 import { ArrowRight } from 'lucide-react-native';
 import InputField from '../../../components/common/inputField';
 
@@ -54,13 +54,14 @@ const SetAccountName = () => {
         </FixedCenterView>
 
         <FixedBottomView>
-          <BigButton
+          <ThemedButton
+            text='Next'
             icon={<ArrowRight strokeWidth={2.5} />}
             loadingOnPress={true}
             onPress={async () => {
               await handleSubmit();
             }}
-          >Next</BigButton>
+          />
         </FixedBottomView>
       </ThemedView>
     </TouchableWithoutFeedback>

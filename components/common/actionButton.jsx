@@ -66,14 +66,11 @@ const ActionButton = ({
             size="small"
             style={styles.spinner}
             color={isPrimary ? Colors.textDark : Colors.textLight}
-          />
-        ) : (
-          <>
-            {icon && <>{React.cloneElement(icon, {
+          />        ) : (
+            icon && React.cloneElement(icon, {
               color: isPrimary ? Colors.textDark : Colors.textLight,
               size: size * 0.43,
-            })}</>}
-          </>
+            })
         )}
     </Pressable>
   );

@@ -14,7 +14,7 @@ import ThemedView from '../../../components/views/themedView';
 import CurvedLine from '../../../components/special/curveLine';
 import FixedCenterView from '../../../components/views/fixedCenterView';
 import FixedBottomView from '../../../components/views/fixedBottomView';
-import BigButton from '../../../components/common/bigButton';
+import ThemedButton from '../../../components/common/themedButton';
 import ActionButton from '../../../components/common/actionButton';
 
 import { Upload, ArrowRight } from 'lucide-react-native';
@@ -116,15 +116,14 @@ const SetAccountProfilePic = () => {
           />
         </FixedCenterView>
 
-        <FixedBottomView>
-          <BigButton
+        <FixedBottomView>          
+          <ThemedButton
+            text={accountImage ? 'Next' : 'Skip'}
             icon={<ArrowRight strokeWidth={2.5} />}
             loadingOnPress={true}
             onPress={handleSubmit}
             isPrimary={accountImage !== null}
-          >
-            {accountImage ? 'Next' : 'Skip'}
-          </BigButton>
+          />
         </FixedBottomView>
       </ThemedView>
     </TouchableWithoutFeedback>

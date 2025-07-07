@@ -11,7 +11,7 @@ import CurvedLine from '../../../components/special/curveLine';
 import FixedCenterView from '../../../components/views/fixedCenterView';
 import BigText from '../../../components/common/bigText';
 import FixedBottomView from '../../../components/views/fixedBottomView';
-import BigButton from '../../../components/common/bigButton';
+import ThemedButton from '../../../components/common/themedButton';
 import { ArrowLeft, ArrowRight, StepBack } from 'lucide-react-native';
 import InputField from '../../../components/common/inputField';
 import HorizontalView from '../../../components/views/horizontalView';
@@ -98,23 +98,21 @@ const SetAccountPassword = () => {
         <FixedBottomView>
           <HorizontalView style={{gap: 10, width: '85%', paddingRight: 20,}}>
             <ActionButton 
-            size={65}
+              size={65}
               icon={<StepBack strokeWidth={2.5} />}
               isPrimary={invalidCred}
               onPress={() => {
                 router.back();
-              }
-              }
-            />
-
-            <BigButton
+            }}/>            
+            <ThemedButton
+              text='Next'
               icon={<ArrowRight strokeWidth={2.5} />}
               loadingOnPress={true}
               onPress={async () => {
                 userDetails._password = password;
                 await handleSubmit();
               }}
-            >Next</BigButton>
+            />
           </HorizontalView>
         </FixedBottomView>
       </ThemedView>

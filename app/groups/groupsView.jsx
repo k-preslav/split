@@ -1,70 +1,140 @@
-import { Button, Image, SafeAreaView, StyleSheet, Text, View } from 'react-native'
-import { styles } from '../../components/themes/styles'
-import { router, useFocusEffect } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
-import { useUser } from '../../hooks/useUser'
-import { createNewGroup, getGroupsByOwnerId } from '../../lib/groupsApi'
-import { userDetails } from '../../lib/userDetails'
-import ThemedView from '../../components/views/themedView'
-import { getUserProfilePicImg, getUserProfilePicUrl } from '../../lib/userProfilePic'
+import { FlatList, View, Dimensions } from 'react-native';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useUser } from '../../hooks/useUser';
+import { getGroupsByOwnerId } from '../../lib/groupsApi';
+import ThemedView from '../../components/views/themedView';
+import GroupComponent from '../../components/groups/groupComponent';
+import ActionButton from '../../components/common/actionButton';
+import HorizontalView from '../../components/views/horizontalView';
+import ThemedButton from '../../components/common/themedButton';
+import FixedTopView from '../../components/views/fixedTopView';
+import FixedCenterView from '../../components/views/fixedCenterView';
+
+const { width } = Dimensions.get('window');
 
 const Groups = () => {
-  const {setGesturesEnabled, logout} = useUser();
+  const { setGesturesEnabled } = useUser();
   const [groups, setGroups] = useState([]);
-  const [pic, setPic] = useState(null);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const flatListRef = useRef(null);
+  const scrollPosition = useRef(0);
+  const previousScrollPosition = useRef(0);
 
-  const fetchGroups = async () => {
-    const url = await getUserProfilePicUrl(userDetails.userProfile.profilePicId);
-    setPic(url);
+  useFocusEffect(useCallback(() => {
+    setGesturesEnabled(false);
+  }, []));
 
-    try {
-      //const groups = await getGroupsByOwnerId(userDetails.userProfile.userId);
-      //setGroups(groups);
-    } catch (err) {
-      console.error('Error:', err);
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const userGroups = [
+        {
+          $id: 'group1',
+          name: 'Netflix Split',
+          ownerId: 'user123',
+          members: [
+            { userCode: 'm6r3dd', paid: true },
+            { userCode: 'vir7jp', paid: true },
+            { userCode: 'q5cd80', paid: false }
+          ],
+        },
+        {
+          $id: 'group2',
+          name: 'Spotify Family',
+          ownerId: 'user456',
+          members: [
+            { userCode: 'q5cd80', paid: true },
+            { userCode: 'm6r3dd', paid: false }
+          ],
+        }
+      ];
+      setGroups(userGroups);
+    };
+
+    fetchGroups();
+  }, []);
+
+  const handleGroupChange = (group, index) => {
+    console.log(`Group changed to: ${group.name} at index ${index}`);
+  };
+
+  const handleScroll = (event) => {
+    const { contentOffset } = event.nativeEvent;
+    const currentPosition = contentOffset.x;
+    
+    const isScrollingForward = currentPosition > previousScrollPosition.current;
+    const isScrollingBackward = currentPosition < previousScrollPosition.current;
+    
+    previousScrollPosition.current = scrollPosition.current;
+    scrollPosition.current = currentPosition;
+    
+    const scrollProgress = currentPosition / width;
+    const currentIndex = Math.floor(scrollProgress);
+    const scrollOffset = scrollProgress - currentIndex;
+    
+    let newIndex = currentIndex;
+    
+    if (isScrollingForward && scrollOffset > 0.05) {
+      newIndex = currentIndex + 1;
+    }
+    else if (isScrollingBackward && currentIndex > 0) {
+      if (scrollOffset < 0.95) {
+        newIndex = currentIndex;
+      } else {
+        newIndex = currentIndex - 1;
+      }
+    }
+    
+    if (newIndex !== activeGroupIndex && newIndex >= 0 && newIndex < groups.length) {
+      setActiveGroupIndex(newIndex);
+      handleGroupChange(groups[newIndex], newIndex);
     }
   };
-  
-  useFocusEffect(useCallback(() => {
-    fetchGroups();
-    setGesturesEnabled(false);
-  }, []))
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.text}>Groups</Text>
-      <Image 
-        source={{ uri: pic }}
-        style={{ width: 150, height: 150, borderRadius: 75 }}
-      />
+    <ThemedView>
+      <FixedTopView style={{height: 10, marginTop: 5}}>
+        <HorizontalView>
+          {/* <ThemedButton
+            isRound={false}
+            isPrimary={false}
+            sizeX={150}
+            sizeY={50}
+          >Create group</ThemedButton> */}
 
-      { groups.map((group, index) => (
-        <View key={group.$id + index} style={styles.groupItem}>
-          <Button 
-            title={group.groupName}
-            onPress={() => {
-              //router.push(`/groups/groupDetails/${group.$id}`)
+        </HorizontalView>
+      </FixedTopView>
+
+      <FlatList
+        ref={flatListRef}
+        data={groups}
+        keyExtractor={(item) => item.$id}
+        horizontal
+        pagingEnabled
+        decelerationRate="normal"
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1 }}
+        initialNumToRender={groups.length}
+        windowSize={3}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              width,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
-        </View>
-      ))}
+          >
+            <GroupComponent 
+              group={item} 
+              isActive={index === activeGroupIndex} 
+            />
+          </View>
+        )}
+      />
+    </ThemedView>
+  );
+};
 
-      <Button 
-        title="New group"
-        onPress={() => {
-          router.push("/groups/createGroup")
-        }
-      }></Button>
-
-      <Button 
-        title="Loguot"
-        onPress={async () => {
-          await logout();
-          router.replace('/');
-        }
-      }></Button>
-    </SafeAreaView>
-  )
-}
-
-export default Groups
+export default Groups;

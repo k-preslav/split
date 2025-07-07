@@ -4,7 +4,7 @@ import ThemedModal from './themedModal'
 import ThemedText from '../common/themedText'
 import QRCodeStyled from 'react-native-qrcode-styled';
 import { Colors } from '../themes/colors';
-import BigButton from '../common/bigButton';
+import ThemedButton from '../common/themedButton';
 import { Check, Copy, CopyCheck, CopyMinus, Forward } from 'lucide-react-native';
 import HorizontalView from '../views/horizontalView';
 import ActionButton from '../common/actionButton';
@@ -15,10 +15,10 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
   const [codeCopied, setCodeCopied] = React.useState(false);
 
   const { width, height } = Dimensions.get('window');
-  const pieceSize = width < 250 ? 7 : width < 350 ? 11 : 13;
+  const pieceSize = width < 250 ? 7 : width < 350 ? 11 : width > 390 ? 12 : 13;
   const modalHeight = width < 350 ? '56%' : '50%'
   const qrContainerWidth = width < 350 ? '79%' : '82%';
-  const scanMeFontSize = width < 350 ? 16 : 22;
+  const scanMeFontSize = width < 350 ? 17 : 22;
 
   const handleShareExternal = async () => {
     try {
@@ -62,6 +62,7 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
             icon={codeCopied ? <Check strokeWidth={2.5}/> : <Copy strokeWidth={2.5} />}
             size={moderateVerticalScale(70)}
             onPress={async() => {
+
               await Clipboard.setStringAsync(userCode);
               setCodeCopied(true);
 
@@ -70,12 +71,13 @@ const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
               }, 1500);
             }}
           />
-          <BigButton 
+          <ThemedButton 
+            text='Share'
             icon={<Forward strokeWidth={2.5} />}
             style={{width: '72%', height: moderateVerticalScale(70)}}
             loadingOnPress={true}
             onPress={handleShareExternal}
-          >Share</BigButton>
+          />
         </HorizontalView>
       </View>
     </ThemedModal>

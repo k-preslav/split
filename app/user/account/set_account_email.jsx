@@ -10,7 +10,7 @@ import CurvedLine from '../../../components/special/curveLine';
 import FixedCenterView from '../../../components/views/fixedCenterView';
 import BigText from '../../../components/common/bigText';
 import FixedBottomView from '../../../components/views/fixedBottomView';
-import BigButton from '../../../components/common/bigButton';
+import ThemedButton from '../../../components/common/themedButton';
 import { ArrowRight } from 'lucide-react-native';
 import InputField from '../../../components/common/inputField';
 
@@ -33,14 +33,15 @@ const SetAccountEmail = () => {
           <InputField keyboard='email' placeholder='cutipie@gonners.com' value={email} onChangeText={setEmail}/>
         </FixedCenterView>
 
-        <FixedBottomView>
-          <BigButton
+        <FixedBottomView>          
+          <ThemedButton
+            text='Next'
             icon={<ArrowRight strokeWidth={2.5} />}
             onPress={() => {
               userDetails._email = email;
               router.push('/user/account/set_account_password');
             }}
-          >Next</BigButton>
+          />
         </FixedBottomView>
       </ThemedView>
     </TouchableWithoutFeedback>
