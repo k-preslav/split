@@ -4,24 +4,19 @@ import { Colors } from '../themes/colors';
 import OrbitingFriendIcon from './orbitingFriendsIcon';
 import NameBar from '../common/nameBar';
 import { useUser } from '../../hooks/useUser';
+import { getUserProfileByCode } from '../../lib/getUser';
+import { userDetails } from '../../lib/userDetails';
+import { getGroupImageUrl } from '../../lib/groupsApi';
 
-const GroupComponent = ({group, isActive}) => {
+const GroupComponent = ({ group, isActive }) => {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const orbitRef = useRef();
-
-  const { logout } = useUser();
 
   useEffect(() => {
     if (isActive && orbitRef.current) {
       orbitRef.current.startAnimation();
     }
   }, [isActive]);
-
-  const handleStartAnimation = () => {
-    if (orbitRef.current) {
-      orbitRef.current.startAnimation();
-    }
-  };
 
   return (
     <View style={groupStyles.container}>
@@ -33,25 +28,22 @@ const GroupComponent = ({group, isActive}) => {
         }}
       >
         <Image
-          source={{
-            uri: 'https://images.icon-icons.com/2699/PNG/512/netflix_logo_icon_170919.png',
-          }}
+          source={{ uri: group.groupImageUrl }}
           style={groupStyles.groupIcon}
           resizeMode="contain"
         />
 
-        {/* Orbiting Friends */}
         <OrbitingFriendIcon
           ref={orbitRef}
-          friends={group.members}
+          friends={group.friendProfiles}
           centerX={layout.width / 2}
           centerY={layout.height / 2}
         />
       </View>
     </View>
-
   );
 };
+
 
 export default GroupComponent;
 

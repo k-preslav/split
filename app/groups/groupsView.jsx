@@ -1,8 +1,8 @@
-import { FlatList, View, Dimensions } from 'react-native';
+import { FlatList, View, Dimensions, ActivityIndicator } from 'react-native';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useUser } from '../../hooks/useUser';
-import { getGroupsByOwnerId } from '../../lib/groupsApi';
+import { getGroupImageUrl, getGroupsByOwnerId } from '../../lib/groupsApi';
 import ThemedView from '../../components/views/themedView';
 import GroupComponent from '../../components/groups/groupComponent';
 import ActionButton from '../../components/common/actionButton';
@@ -19,6 +19,9 @@ import GroupPageIndicator from '../../components/groups/groupPageIndicator';
 import NameBar from '../../components/common/nameBar';
 import { userDetails } from '../../lib/userDetails';
 import CreateEditGroupModal from '../../components/modals/createEditGroupModal';
+import ThemedText from '../../components/common/themedText';
+import { Colors } from '../../components/themes/colors';
+import { getUserProfileByCode } from '../../lib/getUser';
 
 const { width } = Dimensions.get('window');
 
@@ -26,7 +29,7 @@ const Groups = () => {
   const { setGesturesEnabled, logout } = useUser();
   const [groups, setGroups] = useState([]);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-  const [activeGroup, setActiveGroup] = useState(null);
+  const [isFetchingGroups, setIsFetchingGroups] = useState(true);
 
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
 
@@ -34,42 +37,53 @@ const Groups = () => {
   const scrollPosition = useRef(0);
   const previousScrollPosition = useRef(0);
 
+  const fetchGroups = async () => {
+    setIsFetchingGroups(true);
+
+    // Get base groups list
+    const baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
+
+    if (!baseGroups || baseGroups.length === 0) {
+      setGroups([]);
+      setIsFetchingGroups(false);
+      return;
+    }
+
+    // For each group, fetch detailed friend profiles and group image URL
+    const enrichedGroups = await Promise.all(
+      baseGroups.map(async (group) => {
+        // Fetch friend profiles for this group
+        const friendProfiles = await Promise.all(
+          group.friendsCodes.map(code => getUserProfileByCode(code))
+        );
+
+        // Add self to friends list
+        friendProfiles.push(userDetails.userProfile);
+
+        // Get group image URL if available
+        let groupImageUrl = null;
+        if (group.groupImageId) {
+          groupImageUrl = await getGroupImageUrl(group.groupImageId);
+        }
+
+        return {
+          groupId: group.$id,
+          groupName: group.groupName,
+          friendProfiles,
+          groupImageUrl,
+        };
+      })
+    );
+
+    setGroups(enrichedGroups);
+    setIsFetchingGroups(false);
+  };
+
+
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
-  }, []));
-
-  useEffect(() => {
-    const fetchGroups = async () => {
-      const userGroups = [
-        {
-          $id: 'group1',
-          name: 'Netflix Split',
-          ownerId: 'user123',
-          members: [
-            { userCode: 'm6r3dd', paid: true },
-            { userCode: 'vir7jp', paid: true },
-            { userCode: 'q5cd80', paid: false }
-          ],
-        },
-        {
-          $id: 'group2',
-          name: 'Spotify Family',
-          ownerId: 'user456',
-          members: [
-            { userCode: 'q5cd80', paid: true },
-            { userCode: 'm6r3dd', paid: false }
-          ],
-        }
-      ];
-      setGroups(userGroups);
-    };
-
     fetchGroups();
-  }, []);
-
-  const handleGroupChange = (group, index) => {
-    setActiveGroup(group);
-  };
+  }, []));
 
   const handleScroll = (event) => {
     const { contentOffset } = event.nativeEvent;
@@ -100,7 +114,6 @@ const Groups = () => {
     
     if (newIndex !== activeGroupIndex && newIndex >= 0 && newIndex < groups.length) {
       setActiveGroupIndex(newIndex);
-      handleGroupChange(groups[newIndex], newIndex);
     }
   };
 
@@ -124,16 +137,19 @@ const Groups = () => {
 
           <AnchorView>
             <HorizontalView style={{ gap: 5 }}>
-              <ThemedButton
-                text="Create group"
-                icon={<Plus strokeWidth={2.5} />}
-                isRound={false}
-                isPrimary={false}
-                sizeX={145}
-                sizeY={44}
-                fontSize={16}
-                onPress={() => setCreateEditGroupModalVisible(true)}
-              />
+              {groups.length > 0 && (
+                <ThemedButton
+                  text="Create group"
+                  icon={<Plus strokeWidth={2.5} />}
+                  isRound={false}
+                  isPrimary={false}
+                  sizeX={145}
+                  sizeY={44}
+                  fontSize={16}
+                  onPress={() => setCreateEditGroupModalVisible(true)}
+                />
+              )}
+
               <ActionButton 
                 icon={<Bolt strokeWidth={2.5} />}
                 size={44}
@@ -149,46 +165,99 @@ const Groups = () => {
           </AnchorView>
         </View>
       </FixedTopView>
+              
+      {(isFetchingGroups) ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <ActivityIndicator size="small" color={Colors.light}/>
+          <ThemedText fontSize={16} color={Colors.textGray} style={{ marginTop: 10 }}>
+            Getting groups...
+          </ThemedText>
+        </View>
+      ) : groups.length === 0 ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <ThemedText fontSize={38} fontWeight="Bold">
+            No groups
+          </ThemedText>
 
-      <FlatList
-        ref={flatListRef}
-        data={groups}
-        keyExtractor={(item) => item.$id}
-        horizontal
-        pagingEnabled
-        decelerationRate="normal"
-        showsHorizontalScrollIndicator={false}
-        style={{ flex: 1 }}
-        initialNumToRender={groups.length}
-        windowSize={3}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        renderItem={({ item, index }) => (
-          <View
-            style={{
-              width,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <GroupComponent 
-              group={item} 
-              isActive={index === activeGroupIndex} 
+          <ThemedText fontSize={24} fontWeight="Medium">
+            Create your first group
+          </ThemedText>
+
+          <ActionButton
+            icon={<Plus strokeWidth={3} />}
+            size={82}
+            style={{ marginTop: 30 }}
+            onPress={() => setCreateEditGroupModalVisible(true)}
+          />
+        </View>
+      ) : (
+        <>
+          <FlatList
+            ref={flatListRef}
+            data={groups}
+            keyExtractor={(item) => item.groupId}
+            horizontal
+            pagingEnabled
+            decelerationRate="normal"
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+            initialNumToRender={groups.length}
+            windowSize={3}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            renderItem={({ item, index }) => (
+              <View
+                style={{
+                  width,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <GroupComponent
+                  group={item}
+                  isActive={index === activeGroupIndex}
+                />
+              </View>
+            )}
+          />
+
+          <FixedBottomView style={{ position: 'absolute', height: '55%' }}>
+            <NameBar
+              fontSize={18}
+              name={groups[activeGroupIndex]?.groupName || '-'}
             />
-          </View>
-        )}
-      />
+            {groups.length > 1 && (
+              <GroupPageIndicator
+                pagesCount={groups.length}
+                activePage={activeGroupIndex}
+              />
+            )}
+          </FixedBottomView>
 
-      <FixedBottomView style={{ position: 'absolute', height: '50%' }}>
-        <NameBar fontSize={18} name={groups[activeGroupIndex]?.name  || '-'}/>
-        <GroupPageIndicator pagesCount={groups.length} activePage={activeGroupIndex}/>
-      </FixedBottomView>
-      <FixedBottomView style={{height: 'auto'}}>
-        <ThemedButton isPrimary={false}/>
-      </FixedBottomView>
+          <FixedBottomView style={{ height: 'auto' }}>
+            <ThemedButton isPrimary={false} />
+          </FixedBottomView>
+        </>
+      )}
 
       <CreateEditGroupModal 
         visible={createEditGroupModalVisible} 
+        onSubmit={async () => {
+          await fetchGroups();
+        }}
         onClose={() => setCreateEditGroupModalVisible(false)}
       />
     </ThemedView>

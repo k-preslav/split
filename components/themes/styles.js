@@ -42,6 +42,8 @@ export const styles = StyleSheet.create({
     },
     modalBox: {
         backgroundColor: Colors.backgroundSecondary,
+        borderColor: Colors.lightGray,
+        borderWidth: 1.35,        
         width: '100%',
         padding: 12,
         borderTopLeftRadius: 38.5,

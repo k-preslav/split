@@ -1,81 +1,89 @@
 import React from 'react';
-import { Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Pressable } from 'react-native';
-import { styles } from '../themes/styles';
+import { ActivityIndicator, Keyboard, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../themes/colors';
-import { scale } from 'react-native-size-matters';
+import { styles } from '../themes/styles';
 
 const ActionButton = ({
   onPress,
   style,
   enableHaptic = true,
   loadingOnPress = false,
+  isLoading: propIsLoading = false,
   isPrimary = true,
   extraLightWhenSecondary = false,
   isRound = true,
   size = 60,
   icon = null,
 }) => {
-  const [isLoading, setIsLoading] = React.useState(false);
-  
-  const _internalPress = async () => {
+  const [internalLoading, setInternalLoading] = React.useState(false);
+
+  const handlePress = async () => {
+    Keyboard.dismiss();
+
     if (enableHaptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     if (loadingOnPress) {
-      setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 5)); // Give time for the ui to update
+      setInternalLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 5)); // Allow UI to update
     }
-  };
-  
-  const handlePress = async () => {
-    _internalPress();
 
     try {
       await onPress?.();
     } finally {
       if (loadingOnPress) {
         setTimeout(() => {
-          setIsLoading(false);
+          setInternalLoading(false);
         }, 350);
       }
     }
   };
 
+  // Show loading if either prop or internal loading state is true
+  const showLoading = propIsLoading || internalLoading;
+
   return (
     <Pressable
       onPress={handlePress}
       style={[
-        styles.actionButton, 
-        {backgroundColor: isPrimary ? Colors.buttonPrimary : (extraLightWhenSecondary ? Colors.buttonSecondaryLighter : Colors.buttonSecondary)},
-        { borderRadius: isRound ? size / 2: 15 },
-        { width: size, height: size },
+        styles.actionButton,
+        {
+          backgroundColor: isPrimary
+            ? Colors.buttonPrimary
+            : extraLightWhenSecondary
+            ? Colors.buttonSecondaryLighter
+            : Colors.buttonSecondary,
+          borderRadius: isRound ? size / 2 : 15,
+          width: size,
+          height: size,
+        },
         isPrimary && {
           shadowColor: Colors.primary,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.125,
           shadowRadius: 20,
-
           elevation: 10,
         },
-        style
+        style,
       ]}
     >
-        {isLoading ? (
-          <ActivityIndicator 
-            size="small"
-            style={[styles.spinner, {
-              transform: [{ scaleX: size * 0.02  }, { scaleY: size * 0.02 }],
-            }]}
-            color={isPrimary ? Colors.textDark : Colors.textLight}
-          />        ) : (
-            icon && React.cloneElement(icon, {
-              color: isPrimary ? Colors.textDark : Colors.textLight,
-              size: size * 0.43,
-            })
-        )}
+      {showLoading ? (
+        <ActivityIndicator
+          size="small"
+          style={{
+            transform: [{ scaleX: size * 0.02 }, { scaleY: size * 0.02 }],
+          }}
+          color={isPrimary ? Colors.textDark : Colors.textLight}
+        />
+      ) : (
+        icon &&
+        React.cloneElement(icon, {
+          color: isPrimary ? Colors.textDark : Colors.textLight,
+          size: size * 0.43,
+        })
+      )}
     </Pressable>
   );
 };

@@ -143,7 +143,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
               nameBarPosition={y < 0 ? 'top' : 'bottom'}
             />
 
-            <Animated.View
+            {/* <Animated.View
               style={[
                 styles.badge,
                 {
@@ -161,7 +161,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
               ) : (
                 <Clock width={18} strokeWidth={2.25} color={Colors.light} />
               )}
-            </Animated.View>
+            </Animated.View> */}
           </View>
         );
       })}

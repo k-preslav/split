@@ -2,7 +2,7 @@ import { View, Dimensions } from 'react-native';
 import React from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FixedCenterView = ({ yOffset = 0, style, ...props }) => {
+const FixedCenterView = ({ yOffset = 250, style, ...props }) => {
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
   const insets = useSafeAreaInsets();

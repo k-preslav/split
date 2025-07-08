@@ -57,6 +57,7 @@ const SetAccountProfilePic = () => {
         <FixedCenterView yOffset={220}>
           <ActionButton
             isPrimary={false}
+            loadingOnPress={true}
             icon={
               accountImage ? (
                 <Image

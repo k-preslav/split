@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, StyleSheet, ActivityIndicator, View, PixelRatio } from 'react-native';
+import { Text, StyleSheet, ActivityIndicator, View, PixelRatio, Keyboard } from 'react-native';
 import { Pressable } from 'react-native';
 import { styles } from '../themes/styles';
 import * as Haptics from 'expo-haptics';
@@ -24,10 +24,13 @@ const ThemedButton = ({
 
   const fontScale = PixelRatio.getFontScale();
   
+  
   const _internalPress = async () => {
     if (enableHaptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    
+    Keyboard.dismiss();
 
     if (loadingOnPress) {
       setIsLoading(true);

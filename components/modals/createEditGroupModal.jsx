@@ -13,36 +13,51 @@ import { selectImage } from '../../lib/imageSelect'
 import { getUserProfileByCode } from '../../lib/getUser'
 import { getUserProfilePicUrl } from '../../lib/userProfilePic'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { createNewGroup, tryFindGroupImageByGroupName, uploadGroupImage } from '../../lib/groupsApi'
+import { userDetails } from '../../lib/userDetails'
+import { router } from 'expo-router'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [groupName, setGroupName] = React.useState('New group')
   const [groupNameTemp, setGroupNameTemp] = React.useState('')
 
   const [groupImage, setGroupImage] = React.useState(null)
+  const [groupImageFile, setGroupImageFile] = React.useState(null)
 
-  const [fullAmmount, setFullAmmout] = React.useState(0.0)
-  const [fullAmmountTemp, setFullAmmoutTemp] = React.useState(null)
+  const [groupImagePadding, setGroupImagePadding] = React.useState(0)
+ 
+  const [fullAmount, setFullAmout] = React.useState(0.0)
+  const [fullAmountTemp, setFullAmoutTemp] = React.useState(null)
 
   const [paymentOptionIndex, setPaymentOptionIndex] = React.useState(0)
   const [billingDateOption, setBillingDateOption] = React.useState(0)
+  const [forceHideBillingOptions, setForceHideBillingOptions] = React.useState(false)
 
   const [friendCodeInput, setFriendCodeInput] = React.useState('')
   const [friends, setFriends] = React.useState([])
   const [isAddingFriend, setIsAddingFriend] = React.useState(false)
 
+  const [friendShare, setFriendShare] = React.useState(0.0)
+
   const close = () => {
     setGroupNameTemp('')
     setGroupName('New group')
 
-    setGroupImage(null)
-    setFullAmmout(0.0)
-    setFullAmmoutTemp(null)
+    setFullAmout(0.0)
+    setFullAmoutTemp(null)
 
     setPaymentOptionIndex(0)
     setBillingDateOption(0)
+    setForceHideBillingOptions(false)
 
     setFriendCodeInput('')
     setFriends([])
+    setFriendShare(0)
+    setIsAddingFriend(false)
+    
+    setGroupImageFile(null)
+    setGroupImage(null)
+    setGroupImagePadding(0)
 
     onClose?.()
   }
@@ -50,9 +65,26 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const addFriend = async (code) => {
     //setIsAddingFriend(true)
 
+    if (code.length !== 6) {
+      Alert.alert('Invalid code', 'Friend code must be 6 characters long.')
+      setIsAddingFriend(false)
+      return
+    }
+
     const friend = await getUserProfileByCode(code)
     if (!friend) {
       Alert.alert('Friend not found', 'No user found with this code.')
+      setIsAddingFriend(false)
+      return
+    }
+
+    if (friends.some(f => f.userCode === friend.userCode)) {
+      Alert.alert('Friend already added', 'This user is already in your group.')
+      setIsAddingFriend(false)
+      return
+    }
+    if (friend.userCode === userDetails.userProfile.userCode) {
+      Alert.alert('Cannot add yourself', 'You cannot add yourself to the group.')
       setIsAddingFriend(false)
       return
     }
@@ -70,19 +102,97 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   }
 
   const calculateShare = () => {
-    if (friends.length <= 1 || fullAmmount <= 0) {
-      return 0
+    if (friends.length < 1 || fullAmount <= 0) {
+      return 0;
     }
-    const share = fullAmmount / friends.length
-    const fee = share * 0.2
 
-    const result = Math.ceil((share + fee) * 100) / 100;
-    return result
+    const friendCount = friends.length;
+    const ownerShare = fullAmount / (friendCount + 1);
+
+    // How much we need to collect from friends after fee
+    const neededFromFriends = fullAmount - ownerShare;
+
+    // What each friend needs to pay (after 25% fee)
+    const rawFriendPayment = neededFromFriends / (friendCount * 0.75);
+
+    // Round up to nearest cent
+    const friendPayment = Math.ceil(rawFriendPayment * 100) / 100;
+
+    // Recalculate to confirm correctness
+    const totalReceived = ownerShare + friendPayment * friendCount * 0.75;
+        
+    if (totalReceived < fullAmount) {
+      console.warn(
+        'Total received:',
+        totalReceived,
+        'Full amount:',
+        fullAmount
+      );
+
+      Alert.alert('Something went wrong', 'Calculator 🥴');
+      setFriendShare(0);
+      return 0;
+    }
+
+    setFriendShare(friendPayment);
+    return friendPayment;
+  };
+
+  React.useEffect(() => {
+    calculateShare();
+  }, [friends.length, fullAmount]);
+
+  const createGroup = async () => {
+    if (groupName.trim() === '') {
+      Alert.alert('Group name cannot be empty.');
+      return;
+    }
+
+    if (fullAmountTemp === null || isNaN(fullAmountTemp) || fullAmountTemp <= 0) {
+      Alert.alert('Please enter a valid full amount.');
+      return;
+    }
+
+    if (friends.length === 0) {
+      Alert.alert('Please add at least one friend to the group.');
+      return;
+    }
+
+    if (userDetails.userProfile.userId === null) {
+      Alert.alert('Owner profile not found. Please log in again.');
+      
+      router.push('/user/user_welcome');
+      return;
+    }
+
+    if (groupImage === null) {
+      Alert.alert('Please select a group image.');
+      return;
+    }
+
+    let groupImageStorageFile = groupImageFile;
+    if (groupImageFile === null) { // The group image is selected by the user
+      groupImageStorageFile = await uploadGroupImage(groupImage)
+    }
+
+    await createNewGroup(
+      groupName,
+      userDetails.userProfile.userId,
+      friends.map(friend => friend.userCode),
+      [],
+      groupImageStorageFile.$id,
+      parseFloat(fullAmount),
+      parseFloat(friendShare),
+      paymentOptionIndex,
+      billingDateOption
+    )
+
+    onSubmit?.();
+    close();
   }
 
   return (
-    <ThemedModal closeButtonPosition="left" visible={visible} onClose={close} height={'95%'}>
-      {/* Close button */}
+    <ThemedModal closeButtonPosition="left" visible={visible} onClose={close} height={'94.5%'}>
       <View
         style={{
           position: 'absolute',
@@ -94,7 +204,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           isPrimary={true}
           extraLightWhenSecondary={true}
           icon={<Check strokeWidth={2.5} />}
-          onPress={close}
+          loadingOnPress={true}
+          onPress={async() => await createGroup()}
         />
       </View>
 
@@ -102,13 +213,13 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       <View
         style={{
           position: 'absolute',
-          top: 22,
+          top: 23,
           left: 0,
           right: 0,
           alignItems: 'center',
         }}
       >
-        <ThemedText fontSize={30} fontWeight={'Medium'}>
+        <ThemedText fontSize={28} fontWeight={'Medium'}>
           {groupName}
         </ThemedText>
       </View>
@@ -134,6 +245,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                     width: 82,
                     height: 82,
                     borderRadius: 65,
+                    padding: groupImagePadding,
                   }}
                 />
               ) : (
@@ -149,6 +261,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               const img = await selectImage()
               if (img) {
                 setGroupImage(img)
+                setGroupImagePadding(0)
+                setGroupImageFile(null);
               }
             }}
           />
@@ -160,9 +274,45 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               backgroundColor: Colors.lightGray,
             }}
             placeholder={'Group name'}
+            maxLength={15}
             value={groupNameTemp}
             onChangeText={setGroupNameTemp}
-            onKeyboardSubmit={() => setGroupName(groupNameTemp)}
+            autoCapitalize={'words'}
+            onKeyboardSubmit={async() => {             
+              setGroupName(groupNameTemp)
+              const matchImage = await tryFindGroupImageByGroupName(groupNameTemp);
+
+              const handleSetImg = () => {
+                setGroupImagePadding(12);
+                setGroupImage(matchImage.uri);
+                setGroupImageFile(matchImage.file);
+              }
+
+              if (matchImage) {
+                if (groupImage && !groupImageFile)
+                {
+                  Alert.alert(
+                    "Group Image Available",
+                    "We've found an image that matches your group name. Would you like to use this image for your group?",
+                    [
+                      {
+                        text: "No, thanks",
+                        style: "cancel",
+                      },
+                      {
+                        text: "Yes, use it",
+                        onPress: () => {
+                          handleSetImg();
+                        },
+                      },
+                    ]
+                  )
+                }
+                else {
+                  handleSetImg();
+                }
+              }
+            }}
             fontSize={20}
           />
         </HorizontalView>
@@ -180,21 +330,23 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               height: 60,
               backgroundColor: Colors.lightGray,
             }}
-            placeholder="$0.0"
+            placeholder="$0.00"
             keyboardType="decimal-pad"
-            value={fullAmmountTemp}
-            onChangeText={setFullAmmoutTemp}
+            value={fullAmountTemp}
+            onChangeText={setFullAmoutTemp}
             onKeyboardSubmit={() => {
-              const input = fullAmmountTemp?.replace(',', '.') || '0.0'
+              const input = fullAmountTemp?.replace(',', '.') || '0.0'
               const num = parseFloat(input)
               if (num === 0) {
                 return
               }
 
-              const formatted = (Math.ceil(num * 10) / 10).toFixed(1)
+              const formatted = (Math.ceil(num * 10) / 10).toFixed(2)
 
-              setFullAmmout(formatted)
-              setFullAmmoutTemp(formatted)
+              setFullAmout(formatted)
+              setFullAmoutTemp(formatted)
+
+              calculateShare()
             }}
             fontSize={20}
           />
@@ -226,7 +378,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           />
         </HorizontalView>
 
-        {paymentOptionIndex === 1 && (
+        {(paymentOptionIndex === 1 && !forceHideBillingOptions) && (
           <HorizontalView style={{ gap: 10, marginTop: 5 }}>
             <ThemedButton
               text="Every month"
@@ -269,22 +421,32 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             backgroundColor: Colors.lightGray,
           }}
           maxLength={6}
+          fontSize={20}
           placeholder="Friend code"
           value={friendCodeInput}
           onChangeText={setFriendCodeInput}
           onKeyboardSubmit={() => {
-            if (friendCodeInput?.length === 6) {
-              addFriend(friendCodeInput)
+            if (friendCodeInput?.length > 0) {
+              addFriend(friendCodeInput);
+              calculateShare();
             }
+
             setFriendCodeInput('')
+            if (paymentOptionIndex === 1) {
+              setForceHideBillingOptions(false);
+            }
           }}
-          fontSize={20}
+          onFocus={() => {
+            if (paymentOptionIndex === 1) {
+              setForceHideBillingOptions(true);
+            }
+          }}
           />
         <ActionButton
           loadingOnPress={true}
           size={60}
           icon={
-            friendCodeInput?.length === 6 ? (
+            friendCodeInput?.length > 0 ? (
               <ChevronRight strokeWidth={2.5} />
             ) : (
               <QrCode strokeWidth={2.5} />
@@ -292,7 +454,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           }
           onPress={async () => {
             Keyboard.dismiss()
-            if (friendCodeInput?.length === 6) {
+            if (friendCodeInput?.length > 0) {
               await addFriend(friendCodeInput)
               setFriendCodeInput('')
             } else {
@@ -303,9 +465,11 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       </HorizontalView>
 
       {/* Scrollable friend list */}
-      <View style={{ flex: 1, paddingHorizontal: 5, width:'100%'}}>
+      <View style={{ flex: 1, paddingHorizontal: 5, width:'100%', backgroundColor: Colors.backgroundSecondary
+      }}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 16 }}
+          style={{ backgroundColor: Colors.backgroundSecondary }}
           keyboardShouldPersistTaps="handled"
         >
           {isAddingFriend ? (
@@ -375,21 +539,21 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                     </ThemedText>
                   </View>
 
-                  {/* Bill in absolute center */}
+
+                  {/* Trash button and split amount aligned right */}
                   <ThemedText
                     fontSize={20}
                     fontWeight="Regular"
                     color={'#626262'}
                     style={{
                       position: 'absolute',
-                      left: '50%',
-                      transform: [{ translateX: 35 }],
+                      marginLeft: '58%',
                     }}
                     >
-                    {calculateShare() ? `$${calculateShare().toFixed(1)}` : ''}
+                    {
+                      parseFloat(friendShare) > 0 ? `$${parseFloat(friendShare).toFixed(2)}` : ''
+                    }
                   </ThemedText>
-
-                  {/* Trash button aligned right */}
                   <ActionButton
                     icon={<Trash2 strokeWidth={2.5} />}
                     isPrimary={false}

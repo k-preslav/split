@@ -1,5 +1,5 @@
 import React from "react";
-import { TextInput } from "react-native";
+import { Keyboard, TextInput } from "react-native";
 import { styles } from "../themes/styles";
 import { Colors } from "../themes/colors";
 
@@ -11,6 +11,8 @@ const InputField = ({
   style,
   onChangeText = () => {},
   onKeyboardSubmit = () => {},
+  onFocus = () => {},
+  callSubmitOnBlur = false,
   ...props
 }) => {
   const isPassword = keyboard === 'password';
@@ -18,6 +20,12 @@ const InputField = ({
   const keyboardType = isPassword ? 'default' : (isEmail ? 'email-address' : keyboard);
 
   const [canBeCentered, setCanBeCentered] = React.useState(true);
+
+  const handleOnBlur = () => {
+    Keyboard.dismiss();
+    if (callSubmitOnBlur)
+      onKeyboardSubmit?.();
+  }
 
   const handleTextChange = (text) => {
     if (text.length < 20) {
@@ -45,6 +53,8 @@ const InputField = ({
         onChangeText(text);
       }}
       onSubmitEditing={onKeyboardSubmit}
+      onBlur={handleOnBlur}
+      onFocus={onFocus}
       {...props}
     />
   );

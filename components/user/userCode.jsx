@@ -28,8 +28,8 @@ const UserCode = ({ userCode, fontSize, ...props }) => {
           backgroundColor: Colors.primary,
           shadowColor: Colors.primary,
           shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.15,
-          shadowRadius: 20,
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
           elevation: 10,
           ...props.style,
         }}
