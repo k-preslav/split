@@ -50,7 +50,7 @@ const SetAccountName = () => {
         <CurvedLine flipY/>
 
         <FixedCenterView yOffset={260}>
-          <InputField placeholder='John' value={accountName} onChangeText={setAccountName}/>
+          <InputField autoCapitalize='words' placeholder='John' value={accountName} onChangeText={setAccountName}/>
         </FixedCenterView>
 
         <FixedBottomView>

@@ -2,6 +2,7 @@ import { createContext, useState } from "react";
 import { account, databases } from "../lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
 import { userDetails } from "../lib/userDetails";
+import { guessPreferredCurrency } from "../lib/getCurrencyFromLocale";
 
 export const UserContext = createContext();
 
@@ -75,8 +76,10 @@ export function UserProvider({ children }) {
             userId: userData.$id,
             name: userData.name,
             email: userData.email,
-            profilePicId: userDetails._profilePicId || '',
+            profilePicId: userDetails._profilePicId || null,
+            profileImgPlaceholderColor: userDetails._profileImgPlaceholderColor || '',
             userCode: code,
+            preferredCurrency: guessPreferredCurrency(),
           }
         );
 

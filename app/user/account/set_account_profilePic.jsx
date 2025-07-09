@@ -22,6 +22,7 @@ import { storage } from '../../../lib/appwrite';
 import { ID } from 'react-native-appwrite';
 import { uploadUserProfilePic } from '../../../lib/userProfilePic';
 import { selectImage } from '../../../lib/imageSelect';
+import { getRandomColor } from '../../../components/themes/colors';
 
 const SetAccountProfilePic = () => {
   const [accountImage, setAccountImage] = useState(null);
@@ -39,12 +40,17 @@ const SetAccountProfilePic = () => {
   };
 
   const handleSubmit = async () => {
-    const result = await uploadUserProfilePic(accountImage);
-    if (result) {
-      userDetails._profilePicId = result.$id;
+    if (accountImage) {
+      const result = await uploadUserProfilePic(accountImage);
+      if (result) {
+        userDetails._profilePicId = result.$id;
+        router.push('/user/account/set_account_name');
+      } else {
+        Alert.alert('Failed to upload profile picture.', 'Please try again.');
+      }
+    } else { // Get random color for placeholder
+      userDetails._profileImgPlaceholderColor = getRandomColor();
       router.push('/user/account/set_account_name');
-    } else {
-      Alert.alert('Failed to upload profile picture.', 'Please try again.');
     }
   }
 

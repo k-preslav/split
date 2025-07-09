@@ -10,6 +10,7 @@ import ThemedView from '../components/views/themedView'
 import BigText from '../components/common/bigText'
 import { deviceInfo } from '../global/deviceInfo'
 import { getUserProfilePicImg, getUserProfilePicUrl } from '../lib/userProfilePic'
+import { guessPreferredCurrency } from '../lib/getCurrencyFromLocale'
 
 const Index = () => {
   const { fetchUserProfile, setGesturesEnabled } = useUser();
@@ -38,14 +39,14 @@ const Index = () => {
         const profile = await fetchUserProfile(user.$id);
 
         if (profile) {
-          router.replace('/groups/groupsView');
+          router.navigate('/groups/groupsView');
         }
         else {
-          router.replace('/user/user_welcome');
+          router.navigate('/user/user_welcome');
         } 
       }
     } catch (err) {
-      router.replace('/user/user_welcome');
+      router.navigate('/user/user_welcome');
     }
   }
 
@@ -74,7 +75,7 @@ const Index = () => {
 
   return (
     <ThemedView>
-      <ActivityIndicator size='large' color='white'></ActivityIndicator>
+      <ActivityIndicator size='small' color='white'></ActivityIndicator>
     </ThemedView>
   )
 }

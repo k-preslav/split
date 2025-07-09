@@ -12,6 +12,8 @@ import VerticalView from '../components/views/verticalView'
 import InputField from '../components/common/inputField'
 import CurvedLine from '../components/special/curveLine'
 import FixedBottomView from '../components/views/fixedBottomView'
+import UserIcon from '../components/user/userIcon'
+import { userDetails } from '../lib/userDetails'
 
 const themePlayground = () => {
   const [isPrimary, setIsPrimary] = React.useState(true);
@@ -23,25 +25,10 @@ const themePlayground = () => {
       
       <FixedCenterView yOffset={260}>
         <BigText>BIG Text</BigText>
-      
-        <ThemedButton
-          text='Hi'
-          sizeX={100}
-          sizeY={50}
-          isRound={false}
-          isPrimary={true}
-          loadingOnPress={true}
-          size={65}
-          icon={<X strokeWidth={2.5} />}
-        />
-
-        <ActionButton 
-          isRound={true}
-          isPrimary={false}
-          size={45}
-          loadingOnPress={true}
-          icon={<PiIcon strokeWidth={2.5} />}
-        />
+        
+        <View style={{width: 85, height: 85, alignItems: 'center', justifyContent: 'center'}}>
+          <UserIcon user={userDetails.userProfile}/>
+        </View>
       </FixedCenterView>
 
 

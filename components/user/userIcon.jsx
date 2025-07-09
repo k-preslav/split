@@ -1,34 +1,57 @@
 import { View, Text, Image, TouchableWithoutFeedback, ActivityIndicator, StyleSheet } from 'react-native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import NameBar from '../common/nameBar';
 import { getUserProfileByCode } from '../../lib/getUser';
 import { getUserProfilePicUrl } from '../../lib/userProfilePic';
 import { Colors } from '../themes/colors';
+import ThemedText from '../common/themedText';
+import { selectImage } from '../../lib/imageSelect';
+import { Upload } from 'lucide-react-native';
 
-const UserIcon = ({ user, nameBarPosition = 'bottom' }) => {
-  const [showNamebar, setShowNamebar] = React.useState(true);
-  const [profileImageUrl, setProfileImageUrl] = React.useState('');
-  const [userDetails, setUserDetails] = React.useState(null);
+const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPosition = 'bottom' }) => {
+  const [showNamebar, setShowNamebar] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [userDetails, setUserDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [iconSize, setIconSize] = useState({ width: 0, height: 0 });
 
-  const toggleNamebar = () => {
-    setShowNamebar(true);
-    // setTimeout(() => {
-    //   setShowNamebar(false);
-    // }, 2000);
+  const onPressed = async () => {
+    if (enableSelectImage) {
+      setIsLoading(true);
+      const imageSelect = await selectImage();
+      setProfileImageUrl(imageSelect);
+      if (imageSelect) {
+        onImageSelected?.(imageSelect);
+      }
+      setIsLoading(false);
+    }
   };
 
+  const getInitials = (fullName) =>
+    fullName
+      .split(' ')
+      .map(word => word[0].toUpperCase())
+      .join('');
+
   const fetchProfileData = async () => {
+    setIsLoading(true);
+    
     try {
       const userDetails = await getUserProfileByCode(user.userCode);
       if (!userDetails) {
-        console.error('User details not found for userCode:', user.userCode);
+        console.warn('User details not found for userCode:', user.userCode);
         return;
       }
 
       setUserDetails(userDetails);
+      if (!userDetails.profilePicId) {
+        setIsLoading(false);
+        return;
+      }
 
       const url = await getUserProfilePicUrl(userDetails.profilePicId);
       setProfileImageUrl(url);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching profile data:', error);
     }
@@ -38,13 +61,24 @@ const UserIcon = ({ user, nameBarPosition = 'bottom' }) => {
     fetchProfileData();
   }, [user]);
 
+  const calculatedFontSize =
+    iconSize.width && iconSize.height
+      ? Math.min(iconSize.width, iconSize.height) * 0.5
+      : 36;
+
   return (
-    <TouchableWithoutFeedback onPress={toggleNamebar}>
-      <View style={friendIconStyles.container}>
+    <TouchableWithoutFeedback onPress={onPressed}>
+      <View
+        style={friendIconStyles.container}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setIconSize({ width, height });
+        }}
+      >
         {nameBarPosition === 'top' && showNamebar && (
           <NameBar
             fontSize={12}
-            name={userDetails?.name || '-'}
+            name={userDetails?.name.split(' ')[0] || '-'}
             style={{
               paddingVertical: 2,
               paddingHorizontal: 5,
@@ -55,21 +89,53 @@ const UserIcon = ({ user, nameBarPosition = 'bottom' }) => {
           />
         )}
 
-        {!profileImageUrl ? (
-          <ActivityIndicator
-            color={Colors.light}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              zIndex: 1,
-            }}
-          />
+        {!isLoading ? (
+          !profileImageUrl ? (
+            <View
+              style={[
+                {
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+                friendIconStyles.profileImagePlaceholder,
+              ]}
+            >
+              <ThemedText
+                fontSize={calculatedFontSize}
+                fontWeight="BlackItalic"
+                color={userDetails?.profileImgPlaceholderColor || Colors.primary}
+                style={{
+                  textAlign: 'center',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {userDetails?.name ? getInitials(userDetails.name) : '?'}
+              </ThemedText>
+              {enableSelectImage && (
+                <View style={friendIconStyles.uploadOverlay}>
+                  <Upload size={36} strokeWidth={2.25} color={Colors.light} opacity={0.8} />
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={friendIconStyles.container}>
+              <Image
+                source={{ uri: profileImageUrl }}
+                style={friendIconStyles.profileImage}
+              />
+              {enableSelectImage && (
+                <View style={friendIconStyles.uploadOverlay}>
+                  <Upload size={36} strokeWidth={2.5} color={Colors.light} />
+                </View>
+              )}
+            </View>
+          )
         ) : (
-          <Image
-            source={{ uri: profileImageUrl }}
-            style={friendIconStyles.profileImage}
-          />
+          <View style={[friendIconStyles.container, friendIconStyles.profileImagePlaceholder]}>
+            <ActivityIndicator color={Colors.light} />
+          </View>
         )}
 
         {nameBarPosition === 'bottom' && showNamebar && (
@@ -104,10 +170,21 @@ const friendIconStyles = StyleSheet.create({
     height: '100%',
     borderRadius: 99,
   },
-  nameBarTop: {
+  profileImagePlaceholder: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 99,
+    borderColor: Colors.lightGray,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadOverlay: {
     position: 'absolute',
-    top: -20,
-    zIndex: 2,
-    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 99,
+    zIndex: 3,
   },
 });

@@ -1,8 +1,16 @@
-import React from 'react';
-import { Text, StyleSheet, ActivityIndicator, View, PixelRatio, Keyboard } from 'react-native';
-import { Pressable } from 'react-native';
-import { styles } from '../themes/styles';
+import React, { useRef, useState } from 'react';
+import {
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  View,
+  PixelRatio,
+  Keyboard,
+  Pressable,
+  Animated,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { styles } from '../themes/styles';
 import { Colors } from '../themes/colors';
 
 const ThemedButton = ({
@@ -19,25 +27,44 @@ const ThemedButton = ({
   fontSize = 21,
   fontWeight = 'Bold',
   extraLightWhenSecondary = false,
+  showStroke = true,
+  disablePrimaryGlow = false,
 }) => {
-  const [isLoading, setIsLoading] = React.useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
   const fontScale = PixelRatio.getFontScale();
-  
-  
+  const iconScaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(iconScaleAnim, {
+      toValue: 0.93,
+      useNativeDriver: true,
+      speed: 15,
+      bounciness: 6,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(iconScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 8,
+    }).start();
+  };
+
   const _internalPress = async () => {
     if (enableHaptic) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     Keyboard.dismiss();
 
     if (loadingOnPress) {
       setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 5)); // Give time for the ui to update
+      await new Promise((resolve) => setTimeout(resolve, 5));
     }
   };
-  
+
   const handlePress = async () => {
     await _internalPress();
 
@@ -52,8 +79,10 @@ const ThemedButton = ({
     }
   };
 
-  return (    
+  return (
     <Pressable
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       onPress={handlePress}
       style={[
         styles.themedButton,
@@ -62,37 +91,68 @@ const ThemedButton = ({
             ? Colors.buttonPrimary
             : extraLightWhenSecondary
             ? Colors.buttonSecondaryLighter
-            : Colors.buttonSecondary
+            : Colors.buttonSecondary,
         },
-        (sizeX && sizeY) && { width: sizeX, height: sizeY },
+        sizeX && sizeY && { width: sizeX, height: sizeY },
         { borderRadius: isRound ? (sizeX ? sizeX / 2 : 30) : 15 },
-        isPrimary && {
+        (isPrimary && !disablePrimaryGlow) && {
           shadowColor: Colors.primary,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.125,
           shadowRadius: 20,
           elevation: 10,
         },
-        style
+        showStroke && {
+          borderWidth: 1,
+          borderColor: isPrimary
+            ? Colors.primary
+            : extraLightWhenSecondary
+            ? Colors.lighterGray
+            : Colors.lightGray,
+        },
+        style,
       ]}
     >
       {isLoading ? (
-        <ActivityIndicator
-          size="small"
-          style={[styles.spinner, {
-            transform: [{ scaleX: sizeY > 0 ? sizeY * 0.025 : 1.5 }, { scaleY: sizeY > 0 ? sizeY * 0.025 : 1.5 }],
+        <Animated.View
+          style={[{
+            transform: [{ scale: iconScaleAnim }],
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            height: '100%',
           }]}
-          color={isPrimary ? Colors.textDark : Colors.textLight}
-        />
+        >
+          <ActivityIndicator
+            size="small"
+            color={isPrimary ? Colors.textDark : Colors.textLight}
+            style={{
+              transform: [
+                { scaleX: sizeY ? sizeY * 0.025 : 1.5 },
+                { scaleY: sizeY ? sizeY * 0.025 : 1.5 },
+              ],
+            }}
+          />
+        </Animated.View>
       ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text 
-            style={[styles.buttonText, 
-            { 
-              color: isPrimary ? Colors.textDark : Colors.textLight ,
-              fontSize: fontSize / fontScale,
-              fontFamily: `Satoshi-${fontWeight}`,
-            }]}>
+        <Animated.View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            transform: [{ scale: iconScaleAnim }],
+          }}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              {
+                color: isPrimary ? Colors.textDark : Colors.textLight,
+                fontSize: fontSize / fontScale,
+                fontFamily: `Satoshi-${fontWeight}`,
+              },
+            ]}
+          >
             {text}
           </Text>
           {icon &&
@@ -100,10 +160,9 @@ const ThemedButton = ({
               color: isPrimary ? Colors.textDark : Colors.textLight,
               size: sizeY ? sizeY * 0.43 : undefined,
             })}
-        </View>
+        </Animated.View>
       )}
     </Pressable>
-
   );
 };
 

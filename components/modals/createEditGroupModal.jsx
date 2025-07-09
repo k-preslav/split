@@ -39,6 +39,16 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
   const [friendShare, setFriendShare] = React.useState(0.0)
 
+  const getSymbolOfPreferredCurrency = () => {
+    if (userDetails.userProfile.preferredCurrency === 'EUR') {
+      return '€'
+    } else if (userDetails.userProfile.preferredCurrency === 'GBP') {
+      return '£'
+    } else {
+      return '$'
+    }
+  }
+
   const close = () => {
     setGroupNameTemp('')
     setGroupName('New group')
@@ -107,32 +117,12 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
     }
 
     const friendCount = friends.length;
-    const ownerShare = fullAmount / (friendCount + 1);
 
-    // How much we need to collect from friends after fee
-    const neededFromFriends = fullAmount - ownerShare;
-
-    // What each friend needs to pay (after 25% fee)
-    const rawFriendPayment = neededFromFriends / (friendCount * 0.75);
+    const rawNeeded = fullAmount / (friendCount + 1);
+    const rawFriendPayment = rawNeeded * 1.2;
 
     // Round up to nearest cent
     const friendPayment = Math.ceil(rawFriendPayment * 100) / 100;
-
-    // Recalculate to confirm correctness
-    const totalReceived = ownerShare + friendPayment * friendCount * 0.75;
-        
-    if (totalReceived < fullAmount) {
-      console.warn(
-        'Total received:',
-        totalReceived,
-        'Full amount:',
-        fullAmount
-      );
-
-      Alert.alert('Something went wrong', 'Calculator 🥴');
-      setFriendShare(0);
-      return 0;
-    }
 
     setFriendShare(friendPayment);
     return friendPayment;
@@ -148,7 +138,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       return;
     }
 
-    if (fullAmountTemp === null || isNaN(fullAmountTemp) || fullAmountTemp <= 0) {
+    if (fullAmount === null || isNaN(fullAmount) || fullAmount <= 0) {
       Alert.alert('Please enter a valid full amount.');
       return;
     }
@@ -273,6 +263,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               height: 60,
               backgroundColor: Colors.lightGray,
             }}
+            extraLightBorder={true}
             placeholder={'Group name'}
             maxLength={15}
             value={groupNameTemp}
@@ -330,12 +321,13 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               height: 60,
               backgroundColor: Colors.lightGray,
             }}
-            placeholder="$0.00"
+            extraLightBorder={true}
+            placeholder={`${getSymbolOfPreferredCurrency()}0.00`}
             keyboardType="decimal-pad"
             value={fullAmountTemp}
             onChangeText={setFullAmoutTemp}
             onKeyboardSubmit={() => {
-              const input = fullAmountTemp?.replace(',', '.') || '0.0'
+              const input = fullAmountTemp?.replace(',', '.').replace(getSymbolOfPreferredCurrency(), '') || '0.0'
               const num = parseFloat(input)
               if (num === 0) {
                 return
@@ -344,7 +336,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               const formatted = (Math.ceil(num * 10) / 10).toFixed(2)
 
               setFullAmout(formatted)
-              setFullAmoutTemp(formatted)
+              setFullAmoutTemp(`${getSymbolOfPreferredCurrency()}${formatted}`)
 
               calculateShare()
             }}
@@ -420,6 +412,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             marginRight: -10,
             backgroundColor: Colors.lightGray,
           }}
+          extraLightBorder={true}
           maxLength={6}
           fontSize={20}
           placeholder="Friend code"
@@ -444,6 +437,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           />
         <ActionButton
           loadingOnPress={true}
+          disablePrimaryGlow={true}
           size={60}
           icon={
             friendCodeInput?.length > 0 ? (
@@ -496,6 +490,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                 backgroundColor: Colors.lightGray,
                 borderRadius: 15,
                 justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: Colors.lighterGray,
               }}
               >
                 <View
@@ -551,7 +547,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                     }}
                     >
                     {
-                      parseFloat(friendShare) > 0 ? `$${parseFloat(friendShare).toFixed(2)}` : ''
+                      parseFloat(friendShare) > 0 ? `${getSymbolOfPreferredCurrency()}${parseFloat(friendShare).toFixed(2)}` : ''
                     }
                   </ThemedText>
                   <ActionButton
@@ -579,6 +575,12 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               borderRadius: 10,
               justifyContent: 'center',
               alignItems: 'center',
+              borderWidth: 1,
+              borderColor: Colors.lighterGray,
+              shadowColor: 'black',
+              shadowOpacity: 0.1,
+              shadowRadius: 15,
+              shadowOffset: { width: 0, height: 10 },
             }}
             >
               <ThemedText fontSize={20} fontWeight="Medium">

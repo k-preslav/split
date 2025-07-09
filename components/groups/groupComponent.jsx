@@ -51,7 +51,7 @@ const groupStyles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    bottom: 50,
+    bottom: 70,
     justifyContent: 'center',
   },
   groupIconContainer: {

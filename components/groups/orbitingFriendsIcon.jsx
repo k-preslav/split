@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } f
 import { View, StyleSheet, Animated } from 'react-native';
 import UserIcon from '../user/userIcon';
 import { Colors } from '../themes/colors';
-import { Check, Clock } from 'lucide-react-native';
+import { Check, Clock, Crown } from 'lucide-react-native';
 import { deviceInfo } from '../../global/deviceInfo';
 
 function getRandomInRange(min, max) {
@@ -12,9 +12,9 @@ function getRandomInRange(min, max) {
 
 function getRandomStartRotation() {
   if (Math.random() < 0.5) {
-    return getRandomInRange(-1.8, -1.5);
+    return getRandomInRange(-1.8, -1.6);
   } else {
-    return getRandomInRange(1.5, 1.8);
+    return getRandomInRange(1.6, 1.8);
   }
 }
 
@@ -130,7 +130,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
           <View
             key={i + friend.userCode}
             style={[
-              styles.orbitingIcon,
+              friendIconStyles.orbitingIcon,
               {
                 position: 'absolute',
                 left: centerX + x - (85 / 2),
@@ -143,25 +143,35 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
               nameBarPosition={y < 0 ? 'top' : 'bottom'}
             />
 
-            {/* <Animated.View
+            <Animated.View
               style={[
-                styles.badge,
+                friendIconStyles.badge,
                 {
                   position: 'absolute',
                   left: 45 + badgeX - 12,
                   top: 45 + badgeY - 12,
-                  backgroundColor: friend.paid ? Colors.primary : Colors.lightGray,
-                  shadowColor: friend.paid ? Colors.primary : 'black',
+                  backgroundColor: friend.owner
+                    ? Colors.primary
+                    : friend.paid
+                    ? Colors.primary
+                    : Colors.lightGray,
+                  shadowColor: friend.owner
+                    ? Colors.primary
+                    : friend.paid
+                    ? Colors.primary
+                    : 'black',
                   transform: [{ scale: badgeScales[i] }],
                 },
               ]}
             >
-              {friend.paid ? (
+              {friend.owner ? (
+                <Crown width={18} strokeWidth={2.5} />
+              ) : friend.paid ? (
                 <Check width={18} strokeWidth={3} />
               ) : (
                 <Clock width={18} strokeWidth={2.25} color={Colors.light} />
               )}
-            </Animated.View> */}
+            </Animated.View>
           </View>
         );
       })}
@@ -171,7 +181,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
 
 export default OrbitingFriendIcon;
 
-const styles = StyleSheet.create({
+export const friendIconStyles = StyleSheet.create({
   orbitingIcon: {
     width: 85,
     height: 85,

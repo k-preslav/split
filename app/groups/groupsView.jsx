@@ -2,7 +2,7 @@ import { FlatList, View, Dimensions, ActivityIndicator } from 'react-native';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useUser } from '../../hooks/useUser';
-import { getGroupImageUrl, getGroupsByOwnerId } from '../../lib/groupsApi';
+import { getGroupImageUrl, getGroupsByOwnerId, getMemberGroupsByUserCode } from '../../lib/groupsApi';
 import ThemedView from '../../components/views/themedView';
 import GroupComponent from '../../components/groups/groupComponent';
 import ActionButton from '../../components/common/actionButton';
@@ -10,7 +10,7 @@ import HorizontalView from '../../components/views/horizontalView';
 import ThemedButton from '../../components/common/themedButton';
 import FixedTopView from '../../components/views/fixedTopView';
 import FixedCenterView from '../../components/views/fixedCenterView';
-import { Bolt, Plus, Settings, Settings2 } from 'lucide-react-native';
+import { Bolt, Check, Clock, Crown, Plus, Settings, Settings2, User, User2, UserCog } from 'lucide-react-native';
 import AnchorView from '../../components/views/anchorView';
 import UserCode from '../../components/user/userCode';
 import UserCodeShare from '../../components/user/userCodeShare';
@@ -21,7 +21,8 @@ import { userDetails } from '../../lib/userDetails';
 import CreateEditGroupModal from '../../components/modals/createEditGroupModal';
 import ThemedText from '../../components/common/themedText';
 import { Colors } from '../../components/themes/colors';
-import { getUserProfileByCode } from '../../lib/getUser';
+import { getUserProfileByCode, getUserProfileById } from '../../lib/getUser';
+import { friendIconStyles } from '../../components/groups/orbitingFriendsIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -30,89 +31,137 @@ const Groups = () => {
   const [groups, setGroups] = useState([]);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [isFetchingGroups, setIsFetchingGroups] = useState(true);
+  const [showLoadingText, setShowLoadingText] = useState(false);
 
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
+  const [justCreatedGroup, setJustCreatedGroup] = useState(false);
 
   const flatListRef = useRef(null);
   const scrollPosition = useRef(0);
   const previousScrollPosition = useRef(0);
 
+  const fetchLock = useRef(false);
   const fetchGroups = async () => {
+    if (fetchLock.current) return;
+    fetchLock.current = true;
+
     setIsFetchingGroups(true);
+    const showLoadingTimeout = setTimeout(() => {
+      setShowLoadingText(true);
+    }, 1000);
 
-    // Get base groups list
-    const baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
+    try {
+      let baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
+      baseGroups.push(...(await getMemberGroupsByUserCode(userDetails.userProfile.userCode)));
 
-    if (!baseGroups || baseGroups.length === 0) {
-      setGroups([]);
+      if (!baseGroups || baseGroups.length === 0) {
+        setGroups([]);
+        return;
+      }
+
+      const enrichedGroups = await Promise.all(
+        baseGroups.map(async (group) => {
+          const friendProfiles = await Promise.all(
+            group.friendsCodes.map(code => getUserProfileByCode(code))
+          );
+
+          const ownerProfile = await getUserProfileById(group.ownerId);
+          ownerProfile.owner = true;
+          friendProfiles.push(ownerProfile);
+
+          const allFriendProfiles = friendProfiles.map(friend => ({
+            ...friend,
+            paid: group.paidFriendsCodes.includes(friend.userCode),
+          }));
+
+          let groupImageUrl = null;
+          if (group.groupImageId) {
+            groupImageUrl = await getGroupImageUrl(group.groupImageId);
+          }
+
+          return {
+            groupId: group.$id,
+            ownerId: group.ownerId,
+            groupName: group.groupName,
+            friendProfiles: allFriendProfiles,
+            paidFriendsCodes: group.paidFriendsCodes,
+            groupImageUrl,
+          };
+        })
+      );
+
+      setGroups(enrichedGroups);
+
+      if (justCreatedGroup) {
+        setJustCreatedGroup(false);
+
+        const lastOwnedIndex = enrichedGroups
+          .map((group, idx) => ({ ...group, idx }))
+          .filter(group => group.ownerId === userDetails.userProfile.userId)
+          .map(g => g.idx)
+          .pop();
+
+        const targetIndex = lastOwnedIndex ?? 0;
+        setActiveGroupIndex(targetIndex);
+
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: targetIndex, animated: false });
+        }, 50);
+      }
+    } catch (err) {
+      console.error('Error fetching groups:', err);
+    } finally {
       setIsFetchingGroups(false);
-      return;
+      clearTimeout(showLoadingTimeout);
+      fetchLock.current = false;
     }
-
-    // For each group, fetch detailed friend profiles and group image URL
-    const enrichedGroups = await Promise.all(
-      baseGroups.map(async (group) => {
-        // Fetch friend profiles for this group
-        const friendProfiles = await Promise.all(
-          group.friendsCodes.map(code => getUserProfileByCode(code))
-        );
-
-        // Add self to friends list
-        friendProfiles.push(userDetails.userProfile);
-
-        // Get group image URL if available
-        let groupImageUrl = null;
-        if (group.groupImageId) {
-          groupImageUrl = await getGroupImageUrl(group.groupImageId);
-        }
-
-        return {
-          groupId: group.$id,
-          groupName: group.groupName,
-          friendProfiles,
-          groupImageUrl,
-        };
-      })
-    );
-
-    setGroups(enrichedGroups);
-    setIsFetchingGroups(false);
   };
 
+  const isMounted = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
 
-  useFocusEffect(useCallback(() => {
-    setGesturesEnabled(false);
-    fetchGroups();
-  }, []));
+      const load = async () => {
+        if (!cancelled) {
+          isMounted.current = true;
+          await fetchGroups();
+        }
+      };
+
+      load();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
+
+  const isUserOwner = () => {
+    return groups[activeGroupIndex].ownerId === userDetails.userProfile.userId
+  }
+
+  const hasUserPaid = () => {
+    return groups[activeGroupIndex].paidFriendsCodes.includes(userDetails.userProfile.userCode)
+  }
 
   const handleScroll = (event) => {
     const { contentOffset } = event.nativeEvent;
     const currentPosition = contentOffset.x;
-    
-    const isScrollingForward = currentPosition > previousScrollPosition.current;
-    const isScrollingBackward = currentPosition < previousScrollPosition.current;
-    
-    previousScrollPosition.current = scrollPosition.current;
-    scrollPosition.current = currentPosition;
-    
-    const scrollProgress = currentPosition / width;
-    const currentIndex = Math.floor(scrollProgress);
-    const scrollOffset = scrollProgress - currentIndex;
-    
-    let newIndex = currentIndex;
-    
-    if (isScrollingForward && scrollOffset > 0.05) {
-      newIndex = currentIndex + 1;
-    }
-    else if (isScrollingBackward && currentIndex > 0) {
-      if (scrollOffset < 0.95) {
-        newIndex = currentIndex;
-      } else {
-        newIndex = currentIndex - 1;
-      }
-    }
-    
-    if (newIndex !== activeGroupIndex && newIndex >= 0 && newIndex < groups.length) {
+
+    // Determine direction
+    const goingForward = currentPosition > previousScrollPosition.current;
+    const offset = goingForward ? width * 0.925 : width * 0.075;
+
+    const newIndex = Math.floor((currentPosition + offset) / width);
+
+    previousScrollPosition.current = currentPosition;
+
+    if (
+      newIndex !== activeGroupIndex &&
+      newIndex >= 0 &&
+      newIndex < groups.length
+    ) {
       setActiveGroupIndex(newIndex);
     }
   };
@@ -145,20 +194,18 @@ const Groups = () => {
                   isPrimary={false}
                   sizeX={145}
                   sizeY={44}
-                  fontSize={16}
+                  fontSize={15}
                   onPress={() => setCreateEditGroupModalVisible(true)}
                 />
               )}
 
               <ActionButton 
-                icon={<Bolt strokeWidth={2.5} />}
+                icon={<User2 strokeWidth={2.5} />}
                 size={44}
                 isPrimary={false}
                 isRound={false}
-                loadingOnPress={true}
                 onPress={async() => {
-                  await logout();
-                  router.push('/');
+                  router.push('/user/account/accountSettingsView');
                 }}
               />
             </HorizontalView>
@@ -166,7 +213,7 @@ const Groups = () => {
         </View>
       </FixedTopView>
               
-      {(isFetchingGroups) ? (
+      {(showLoadingText) ? (
         <View
           style={{
             flex: 1,
@@ -234,10 +281,38 @@ const Groups = () => {
             )}
           />
 
-          <FixedBottomView style={{ position: 'absolute', height: '55%' }}>
+          <FixedBottomView style={{ position: 'absolute', height: '50%' }}>
             <NameBar
               fontSize={18}
               name={groups[activeGroupIndex]?.groupName || '-'}
+              icon={
+                <View
+                  style={[
+                    friendIconStyles.badge,
+                    {
+                      backgroundColor: 
+                        (isUserOwner()  || hasUserPaid())
+                        ? Colors.primary
+                        : Colors.lightGray,
+                      shadowColor:
+                        (isUserOwner()  || hasUserPaid())
+                        ? Colors.primary
+                        : 'black',
+                      transform: [{
+                        scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
+                      }],
+                    },
+                  ]}
+                >
+                  {isUserOwner() ? (
+                    <Crown width={18} strokeWidth={2.5} />
+                  ) : hasUserPaid() ? (
+                    <Check width={18} strokeWidth={3} />
+                  ) : (
+                    <Clock width={18} strokeWidth={2.25} color={Colors.light} />
+                  )}
+                </View>
+              }
             />
             {groups.length > 1 && (
               <GroupPageIndicator
@@ -256,6 +331,7 @@ const Groups = () => {
       <CreateEditGroupModal 
         visible={createEditGroupModalVisible} 
         onSubmit={async () => {
+          setJustCreatedGroup(true);
           await fetchGroups();
         }}
         onClose={() => setCreateEditGroupModalVisible(false)}

@@ -13,6 +13,7 @@ const InputField = ({
   onKeyboardSubmit = () => {},
   onFocus = () => {},
   callSubmitOnBlur = false,
+  extraLightBorder = false,
   ...props
 }) => {
   const isPassword = keyboard === 'password';
@@ -20,12 +21,18 @@ const InputField = ({
   const keyboardType = isPassword ? 'default' : (isEmail ? 'email-address' : keyboard);
 
   const [canBeCentered, setCanBeCentered] = React.useState(true);
+  const [isFocused, setIsFocused] = React.useState(false);
 
   const handleOnBlur = () => {
+    setIsFocused(false);
     Keyboard.dismiss();
-    if (callSubmitOnBlur)
-      onKeyboardSubmit?.();
-  }
+    if (callSubmitOnBlur) onKeyboardSubmit?.();
+  };
+
+  const handleOnFocus = () => {
+    setIsFocused(true);
+    onFocus();
+  };
 
   const handleTextChange = (text) => {
     if (text.length < 20) {
@@ -35,9 +42,17 @@ const InputField = ({
     }
   };
 
+  // Truncate value only for visual display
+  const displayValue =
+    !isFocused && typeof value === 'string' && value.length > 21
+      ? value.substring(0, 18) + '...'
+      : value;
+
   return (
     <TextInput
-      style={[styles.inputField, style]}
+      style={[styles.inputField, style, {
+        borderColor: extraLightBorder ? Colors.lighterGray : Colors.lightGray,
+      }]}
       placeholder={placeholder}
       placeholderTextColor={Colors.textGray}
       keyboardType={keyboardType}
@@ -46,7 +61,7 @@ const InputField = ({
       multiline={false}
       numberOfLines={1}
       returnKeyType="done"
-      value={value}
+      value={displayValue}
       textAlign={canBeCentered ? 'center' : 'left'}
       onChangeText={(text) => {
         handleTextChange(text);
@@ -54,7 +69,7 @@ const InputField = ({
       }}
       onSubmitEditing={onKeyboardSubmit}
       onBlur={handleOnBlur}
-      onFocus={onFocus}
+      onFocus={handleOnFocus}
       {...props}
     />
   );
