@@ -23,6 +23,7 @@ import { useUser } from '../../../hooks/useUser'
 import { updateUserCollectData, updateUserEmail, updateUserName, updateUserPreferredCurrency, updateUserProfilePic } from '../../../lib/updateUser'
 import EnterPasswordModal from '../../../components/modals/enterPasswordModal'
 import { uploadUserProfilePic } from '../../../lib/userProfilePic'
+import { DELETE_USER_RES_CODES, deleteUser } from '../../../lib/userDelete'
 
 const AccountSettingsView = () => {
   const {setGesturesEnabled, logout} = useUser();
@@ -30,18 +31,21 @@ const AccountSettingsView = () => {
   const [userCodeShareModalVisible, setUserCodeShareModalVisible] = React.useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = React.useState(false);
   const [password, setPassword] = React.useState('');
-
+  
   const [name, setName] = React.useState(userDetails.userProfile.name || '');
-
+  
   const [email, setEmail] = React.useState(userDetails.userProfile.email || '');
   const [newEmail, setNewEmail] = React.useState(userDetails.userProfile.email || '');
   const [isEmailChanged, setIsEmailChanged] = React.useState(false);
-
+  
+  const [profilePicOriginal, setProfilePicOriginal] = React.useState(userDetails.userProfile.profilePicId || null);
   const [profilePicSelect, setProfilePicSelect] = React.useState(null);
-
+  
   const [preferredCurrency, setPreferredCurrency] = React.useState(userDetails.userProfile.preferredCurrency || 'USD');
-
+  
   const [collectData, setCollectData] = React.useState(userDetails.userProfile.collectData);
+  
+  const [wantsToDeleteAccount, setWantsToDeleteAccount] = React.useState(false);
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(true);
@@ -65,7 +69,7 @@ const AccountSettingsView = () => {
     }
 
     if (profilePicSelect) {
-      const profilePicUpload = await uploadUserProfilePic(profilePicSelect);
+      const profilePicUpload = await uploadUserProfilePic(profilePicSelect, profilePicOriginal);
       if (!profilePicUpload) {
         Alert.alert("Failed to upload profile picture", "Please try again.");
         return;
@@ -330,6 +334,22 @@ const AccountSettingsView = () => {
                 color={Colors.red}
                 style={{textDecorationLine: 'underline'}}
                 fontWeight="Regular"
+                onPress={() => {
+                  Alert.alert("Are you sure?", "This action cannot be undone. Your account will be permanently deleted.", [
+                    {
+                      text: "Cancel",
+                      style: "cancel"
+                    },
+                    {
+                      text: "Delete Account",
+                      style: "destructive",
+                      onPress: () => {
+                        setWantsToDeleteAccount(true);
+                        setPasswordModalVisible(true);
+                      }
+                    }
+                  ])
+                }}
               >click here</ThemedText>
             </HorizontalView>
           </View>
@@ -344,11 +364,34 @@ const AccountSettingsView = () => {
       <EnterPasswordModal 
         visible={passwordModalVisible}
         onClose={() => {
-          setIsEmailChanged(false)
+          if (!wantsToDeleteAccount) {
+            setIsEmailChanged(false)
+          }
+
+          setWantsToDeleteAccount(false)
           setPasswordModalVisible(false)
         }}
-        onSubmit={(pass) => {
+        onSubmit={async(pass) => {
           setPassword(pass)
+          
+          if (wantsToDeleteAccount) {
+            const deleteResponse = await deleteUser(pass);
+
+            if (deleteResponse === DELETE_USER_RES_CODES.INCORRECT_PASSWORD) {
+              Alert.alert("Cannot delete account", "The password you provided is incorrect.")
+            }
+            else if (deleteResponse === DELETE_USER_RES_CODES.NO_USER_ID) {
+              Alert.alert("Cannot delete account", "No user ID found in user details, cannot delete account.")
+            }
+            else if (deleteResponse === DELETE_USER_RES_CODES.SUCCESS) {
+              Alert.alert("Sad to see you go 😔", "Your account has been successfully deleted.");
+              router.replace('/user/user_welcome');
+            }
+            else {
+              Alert.alert("Error deleting account", "Something went wrong. Guess you will stick with us for a while longer.");
+            }
+          }
+
           setPasswordModalVisible(false);
         }}
       />

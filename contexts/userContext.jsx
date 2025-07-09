@@ -66,6 +66,8 @@ export function UserProvider({ children }) {
   }
 
   async function createUserProfile(userData) {
+    const preferredCurrency = await guessPreferredCurrency();
+
     await generateUserCode().then(async (code) => {
       try {
         const result = await databases.createDocument(
@@ -79,7 +81,7 @@ export function UserProvider({ children }) {
             profilePicId: userDetails._profilePicId || null,
             profileImgPlaceholderColor: userDetails._profileImgPlaceholderColor || '',
             userCode: code,
-            preferredCurrency: guessPreferredCurrency(),
+            preferredCurrency: preferredCurrency || 'USD',
           }
         );
 

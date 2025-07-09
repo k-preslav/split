@@ -61,7 +61,7 @@ const EnterPasswordModal = ({visible, onClose, onSubmit}) => {
             textAlign: 'center',
             paddingHorizontal: 20,
           }}
-        >To change your email, please enter you password in the field bellow</ThemedText>
+        >Please enter your password in the field below, for security reasons</ThemedText>
 
         <InputField 
           placeholder='----------'

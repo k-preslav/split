@@ -3,15 +3,19 @@ import React from 'react'
 import { styles } from '../themes/styles';
 import { Colors } from '../themes/colors';
 
-const ThemedText = ({ children, fontWeight, fontSize, color, style, ...props }) => {
+const ThemedText = ({ children, fontWeight, fontSize, color, style, onPress, ...props }) => {
   const fontScale = PixelRatio.getFontScale();
 
   return (
-    <Text style={[{
-      fontFamily: `Satoshi-${fontWeight || 'Regular'}`,
-      fontSize: fontSize / fontScale || 16 / fontScale,
-      color: color || Colors.textLight,
-    }, style]} {...props}>
+    <Text 
+      style={[{
+        fontFamily: `Satoshi-${fontWeight || 'Regular'}`,
+        fontSize: (fontSize || 16) / fontScale,
+        color: color || Colors.textLight,
+      }, style]} 
+      onPress={onPress}
+      {...props}
+    >
       {children}
     </Text>
   );
