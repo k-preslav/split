@@ -12,8 +12,13 @@ const EnterPasswordModal = ({visible, onClose, onSubmit}) => {
   const [password, setPassword] = React.useState('')
   const [modalHeight, setModalHeight] = React.useState('33%')
 
+  const handleClose = () => {
+    setPassword('');
+    onClose?.();
+  }
+
   return (
-    <ThemedModal height={modalHeight} visible={visible} onClose={onClose} closeButtonPosition='left'>
+    <ThemedModal height={modalHeight} visible={visible} onClose={handleClose} closeButtonPosition='left'>
       <View
         style={{
           position: 'absolute',
@@ -26,7 +31,10 @@ const EnterPasswordModal = ({visible, onClose, onSubmit}) => {
           extraLightWhenSecondary={true}
           icon={<Check strokeWidth={2.5} />}
           loadingOnPress={true}
-          onPress={() => onSubmit?.(password)}
+          onPress={() => {
+            onSubmit?.(password)
+            setPassword('')
+          }}
         />
       </View>
 

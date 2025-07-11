@@ -19,8 +19,8 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
     if (enableSelectImage) {
       setIsLoading(true);
       const imageSelect = await selectImage();
-      setProfileImageUrl(imageSelect);
       if (imageSelect) {
+        setProfileImageUrl(imageSelect);
         onImageSelected?.(imageSelect);
       }
       setIsLoading(false);
@@ -34,8 +34,8 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
       .join('');
 
   const fetchProfileData = async () => {
-    setIsLoading(true);
-    
+    let loadingTimeout = setTimeout(() => setIsLoading(true), 150);
+
     try {
       const userDetails = await getUserProfileByCode(user.userCode);
       if (!userDetails) {
@@ -54,6 +54,9 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching profile data:', error);
+    } finally {
+      clearTimeout(loadingTimeout);
+      setIsLoading(false);
     }
   };
 

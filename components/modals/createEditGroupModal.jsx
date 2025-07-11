@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { createNewGroup, tryFindGroupImageByGroupName, uploadGroupImage } from '../../lib/groupsApi'
 import { userDetails } from '../../lib/userDetails'
 import { router } from 'expo-router'
+import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [groupName, setGroupName] = React.useState('New group')
@@ -38,16 +39,6 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [isAddingFriend, setIsAddingFriend] = React.useState(false)
 
   const [friendShare, setFriendShare] = React.useState(0.0)
-
-  const getSymbolOfPreferredCurrency = () => {
-    if (userDetails.userProfile.preferredCurrency === 'EUR') {
-      return '€'
-    } else if (userDetails.userProfile.preferredCurrency === 'GBP') {
-      return '£'
-    } else {
-      return '$'
-    }
-  }
 
   const close = () => {
     setGroupNameTemp('')
@@ -234,7 +225,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                   style={{
                     width: 82,
                     height: 82,
-                    borderRadius: 65,
+                    borderRadius: 99,
                     padding: groupImagePadding,
                   }}
                 />

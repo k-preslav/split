@@ -8,6 +8,18 @@ export const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    panel: {
+        backgroundColor: Colors.backgroundSecondary,
+        borderRadius: 36,
+        padding: 12,
+        borderColor: Colors.lightGray,
+        borderWidth: 1.25,
+        width: '90%',
+        height: '100%',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+    },
+
     fixedBottom: {
         justifyContent: 'flex-end',
         alignItems: 'center',

@@ -22,6 +22,7 @@ const ActionButton = ({
   overrideIconSize = null,
   showStroke = true,
   disablePrimaryGlow = false,
+  overrideBackgroundColor = null,
   icon = null,
 }) => {
   const [internalLoading, setInternalLoading] = useState(false);
@@ -78,7 +79,8 @@ const ActionButton = ({
       style={[
         styles.actionButton,
         {
-          backgroundColor: isPrimary
+          backgroundColor: overrideBackgroundColor ? overrideBackgroundColor : 
+            isPrimary
             ? Colors.buttonPrimary
             : extraLightWhenSecondary
             ? Colors.buttonSecondaryLighter
@@ -88,7 +90,7 @@ const ActionButton = ({
           height: size,
         },
         (isPrimary && !disablePrimaryGlow) && {
-          shadowColor: Colors.primary,
+          shadowColor: overrideBackgroundColor ? overrideBackgroundColor : Colors.primary,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.125,
           shadowRadius: 20,

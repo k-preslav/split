@@ -1,5 +1,5 @@
 import { FlatList, View, Dimensions, ActivityIndicator } from 'react-native';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo, act } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useUser } from '../../hooks/useUser';
 import { getGroupImageUrl, getGroupsByOwnerId, getMemberGroupsByUserCode } from '../../lib/groupsApi';
@@ -23,6 +23,9 @@ import ThemedText from '../../components/common/themedText';
 import { Colors } from '../../components/themes/colors';
 import { getUserProfileByCode, getUserProfileById } from '../../lib/getUser';
 import { friendIconStyles } from '../../components/groups/orbitingFriendsIcon';
+import GroupActionsPanel from '../../components/groups/groupActionsPanel';
+import { client } from '../../lib/appwrite';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -30,15 +33,48 @@ const Groups = () => {
   const { setGesturesEnabled, logout } = useUser();
   const [groups, setGroups] = useState([]);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+
   const [isFetchingGroups, setIsFetchingGroups] = useState(true);
   const [showLoadingText, setShowLoadingText] = useState(false);
-
+  
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
   const [justCreatedGroup, setJustCreatedGroup] = useState(false);
-
+  
   const flatListRef = useRef(null);
-  const scrollPosition = useRef(0);
   const previousScrollPosition = useRef(0);
+
+  const liveUpdateSubRef = useRef(null);
+
+  const enrichGroup = async (group) => {
+    const friendProfiles = await Promise.all(
+      group.friendsCodes.map(code => getUserProfileByCode(code))
+    );
+
+    const ownerProfile = await getUserProfileById(group.ownerId);
+    ownerProfile.owner = true;
+    friendProfiles.push(ownerProfile);
+
+    const allFriendProfiles = friendProfiles.map(friend => ({
+      ...friend,
+      paid: group.paidFriendsCodes.includes(friend.userCode),
+    }));
+
+    let groupImageUrl = null;
+    if (group.groupImageId) {
+      groupImageUrl = await getGroupImageUrl(group.groupImageId);
+    }
+
+    return {
+      groupId: group.$id,
+      ownerId: group.ownerId,
+      groupName: group.groupName,
+      friendProfiles: allFriendProfiles,
+      paidFriendsCodes: group.paidFriendsCodes,
+      groupImageUrl,
+      payAmount: group.payAmount || 0,
+      splitAmount: group.splitAmount || 0,
+    };
+  };
 
   const fetchLock = useRef(false);
   const fetchGroups = async () => {
@@ -61,31 +97,10 @@ const Groups = () => {
 
       const enrichedGroups = await Promise.all(
         baseGroups.map(async (group) => {
-          const friendProfiles = await Promise.all(
-            group.friendsCodes.map(code => getUserProfileByCode(code))
-          );
-
-          const ownerProfile = await getUserProfileById(group.ownerId);
-          ownerProfile.owner = true;
-          friendProfiles.push(ownerProfile);
-
-          const allFriendProfiles = friendProfiles.map(friend => ({
-            ...friend,
-            paid: group.paidFriendsCodes.includes(friend.userCode),
-          }));
-
-          let groupImageUrl = null;
-          if (group.groupImageId) {
-            groupImageUrl = await getGroupImageUrl(group.groupImageId);
-          }
-
+          const enriched = await enrichGroup(group);
           return {
+            ...enriched,
             groupId: group.$id,
-            ownerId: group.ownerId,
-            groupName: group.groupName,
-            friendProfiles: allFriendProfiles,
-            paidFriendsCodes: group.paidFriendsCodes,
-            groupImageUrl,
           };
         })
       );
@@ -102,10 +117,9 @@ const Groups = () => {
           .pop();
 
         const targetIndex = lastOwnedIndex ?? 0;
-        setActiveGroupIndex(targetIndex);
 
         setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: targetIndex, animated: false });
+          flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
         }, 50);
       }
     } catch (err) {
@@ -117,33 +131,84 @@ const Groups = () => {
     }
   };
 
-  const isMounted = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (!isFocused) return;
 
-      const load = async () => {
-        if (!cancelled) {
-          isMounted.current = true;
-          await fetchGroups();
+    setGesturesEnabled(false);
+
+    fetchGroups();
+
+    return () => {
+      if (liveUpdateSubRef.current) {
+        liveUpdateSubRef.current.forEach(unsub => unsub());
+        liveUpdateSubRef.current = null;
+      }
+    };
+  }, [isFocused]);
+
+
+  useEffect(() => {
+    if (liveUpdateSubRef.current) {
+      liveUpdateSubRef.current.forEach(unsub => unsub());
+    }
+
+    const db = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
+    const coll = process.env.EXPO_PUBLIC_APPWRITE_GROUPS_COLLECTION_ID;
+
+    const unsubscribe = client.subscribe(
+      `databases.${db}.collections.${coll}.documents`,
+      async (res) => {
+        setShowLoadingText(true);
+
+        const payload = res?.payload;
+        if (!payload || !payload.$id) {
+          console.warn('Received malformed Appwrite realtime payload:', res);
+          return;
         }
-      };
 
-      load();
+        const groupId = payload.$id;
 
-      return () => {
-        cancelled = true;
-      };
-    }, [])
-  );
+        if (!groupId) return;
+
+        let updatedGroupIndex = groups.indexOf(groups.find(group => group.groupId === groupId))
+        
+        if (res.events.includes('databases.*.collections.*.documents.*.delete')) {
+          updatedGroupIndex -= 1;
+        }
+
+        setGroups([]);
+        await fetchGroups().then(() => {
+          setShowLoadingText(false);
+
+          if (updatedGroupIndex > -1) {
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({ index: updatedGroupIndex, animated: true });
+            }, 50);
+          }
+        });
+      }
+    );
+
+    liveUpdateSubRef.current = [unsubscribe];
+
+    return () => {
+      unsubscribe();
+    };
+  }, [groups]);
 
   const isUserOwner = () => {
-    return groups[activeGroupIndex].ownerId === userDetails.userProfile.userId
-  }
+    const currentGroup = groups[activeGroupIndex];
+    if (!currentGroup) return false;
+    return currentGroup.ownerId === userDetails.userProfile.userId;
+  };
 
   const hasUserPaid = () => {
-    return groups[activeGroupIndex].paidFriendsCodes.includes(userDetails.userProfile.userCode)
-  }
+    const currentGroup = groups[activeGroupIndex];
+
+    if (!currentGroup) return false;
+    return currentGroup.paidFriendsCodes.includes(userDetails.userProfile.userCode);
+  };
 
   const handleScroll = (event) => {
     const { contentOffset } = event.nativeEvent;
@@ -151,7 +216,7 @@ const Groups = () => {
 
     // Determine direction
     const goingForward = currentPosition > previousScrollPosition.current;
-    const offset = goingForward ? width * 0.925 : width * 0.075;
+    const offset = goingForward ? width * 0.97 : width * 0.03;
 
     const newIndex = Math.floor((currentPosition + offset) / width);
 
@@ -279,9 +344,14 @@ const Groups = () => {
                 />
               </View>
             )}
+            getItemLayout={(data, index) => ({
+              length: width,     // item width
+              offset: width * index,  // item offset from the start
+              index,
+            })}
           />
 
-          <FixedBottomView style={{ position: 'absolute', height: '50%' }}>
+          <FixedBottomView style={{ position: 'absolute', bottom: '35%' }}>
             <NameBar
               fontSize={18}
               name={groups[activeGroupIndex]?.groupName || '-'}
@@ -321,12 +391,16 @@ const Groups = () => {
               />
             )}
           </FixedBottomView>
-
-          <FixedBottomView style={{ height: 'auto' }}>
-            <ThemedButton isPrimary={false} />
-          </FixedBottomView>
         </>
       )}
+
+      <FixedBottomView style={{ height: '29%' }}>
+        <GroupActionsPanel 
+          group={groups[activeGroupIndex]}
+          hasUserPaid={hasUserPaid()}
+          isUserOwner={isUserOwner()}
+        />
+      </FixedBottomView>
 
       <CreateEditGroupModal 
         visible={createEditGroupModalVisible} 

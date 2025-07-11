@@ -2,7 +2,7 @@ import { Button, Dimensions, SafeAreaView, Text, View } from 'react-native'
 import { styles } from '../../components/themes/styles'
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useUser } from '../../hooks/useUser';
 import ThemedView from '../../components/views/themedView';
 import CurvedLine from '../../components/special/curveLine';
@@ -14,11 +14,15 @@ import { ArrowRight } from 'lucide-react-native';
 
 const UserWelcome = () => {
   const insets = useSafeAreaInsets();
-  const { setGesturesEnabled } = useUser();
+  const { setGesturesEnabled, logout } = useUser();
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
   }, []))
+
+  useEffect(() => {
+    logout();
+  }, [])
 
   return (
     <ThemedView>

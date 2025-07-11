@@ -1,5 +1,5 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import ThemedView from '../../../components/views/themedView'
 import { styles } from '../../../components/themes/styles'
 import ActionButton from '../../../components/common/actionButton'
@@ -15,15 +15,16 @@ import InputField from '../../../components/common/inputField'
 import UserCodeShare from '../../../components/user/userCodeShare'
 import VerticalView from '../../../components/views/verticalView'
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal'
-import { account } from '../../../lib/appwrite'
+import { account, isVerified, sendChangePassword, sendVerify } from '../../../lib/appwrite'
 import ThemedButton from '../../../components/common/themedButton'
 import { Colors } from '../../../components/themes/colors'
 import { router, useFocusEffect } from 'expo-router'
 import { useUser } from '../../../hooks/useUser'
-import { updateUserCollectData, updateUserEmail, updateUserName, updateUserPreferredCurrency, updateUserProfilePic } from '../../../lib/updateUser'
+import { updateUserCollectData, updateUserEmail, updateUserName, updateUserPreferredCurrency, updateUserProfilePic, updateUserShouldBeLoggedOut } from '../../../lib/updateUser'
 import EnterPasswordModal from '../../../components/modals/enterPasswordModal'
 import { uploadUserProfilePic } from '../../../lib/userProfilePic'
 import { DELETE_USER_RES_CODES, deleteUser } from '../../../lib/userDelete'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const AccountSettingsView = () => {
   const {setGesturesEnabled, logout} = useUser();
@@ -47,9 +48,30 @@ const AccountSettingsView = () => {
   
   const [wantsToDeleteAccount, setWantsToDeleteAccount] = React.useState(false);
 
+  const [enableVerificationCheckRefresh, setEnableVerificationCheckRefresh] = React.useState(false);
+  const [verified, setVerified] = React.useState(false);
+
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(true);
   }, []));
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      const isVerifiedRes = await isVerified();
+      
+      if (isVerifiedRes !== verified) {
+        setEnableVerificationCheckRefresh(false);
+        setVerified(isVerifiedRes);
+      }
+    };
+    
+    checkVerification();
+
+    if (!enableVerificationCheckRefresh) return;
+    const intervalId = setInterval(checkVerification, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [enableVerificationCheckRefresh]);
 
   const applyChangesAndClose = async () => {
     const updateNameRes = await updateUserName(name);
@@ -186,25 +208,46 @@ const AccountSettingsView = () => {
               onKeyboardSubmit={() => {
                 if (newEmail !== email) {
                   setNewEmail(email)
-                  setPasswordModalVisible(true);
-                  setIsEmailChanged(true);
+
+                  if (email !== userDetails.userProfile.email) {
+                    setVerified(false);
+                    setPasswordModalVisible(true);
+                    setIsEmailChanged(true);
+                  }
+                  else {
+                    setVerified(true);
+                  }
                 }
               }}
             />
             <ThemedButton 
-              text={newEmail === email ? "Verify" : ''}
+              text={newEmail === email ? (verified ? "Verified" : "Verify") : ''}
               icon={newEmail !== email && <ArrowRightFromLine style={{right: 5}} strokeWidth={2.5} />}
-              isPrimary={true}
+              isPrimary={!verified || newEmail !== email}
               isRound={false}
               sizeY={48}
               sizeX={70}
-              fontSize={16}
+              fontSize={verified ? 12 : 16}
               disablePrimaryGlow={true}
-              onPress={() => {
+              loadingOnPress={!verified}
+              isDisabled={verified && newEmail === email}
+              onPress={async() => {
                 if (newEmail !== email) {
                   setNewEmail(email);
-                  setPasswordModalVisible(true);
-                  setIsEmailChanged(true);
+
+                  if (email !== userDetails.userProfile.email) {
+                    setVerified(false);
+                    setPasswordModalVisible(true);
+                    setIsEmailChanged(true);
+                  }
+                  else {
+                    setVerified(true);
+                  }
+                } else if (!verified) {
+                  await sendVerify();
+                  setEnableVerificationCheckRefresh(true);
+
+                  Alert.alert("Verification email sent", "Please check your inbox and follow the instructions to verify your email address.");
                 }
               }}
             />
@@ -218,8 +261,14 @@ const AccountSettingsView = () => {
               sizeY={50}
               sizeX={235}
               fontSize={16}
-              onPress={() => {
-                account.updatePassword('new-password');
+              onPress={async() => {
+                await sendChangePassword();
+                Alert.alert("Password change email sent", "Please check your inbox and follow the instructions to change your password.");
+
+                updateUserShouldBeLoggedOut(true);
+                setTimeout(() => {
+                  router.navigate('/user/user_welcome');
+                }, 3000);
               }}
             />
           </HorizontalView>

@@ -29,12 +29,15 @@ const ThemedButton = ({
   extraLightWhenSecondary = false,
   showStroke = true,
   disablePrimaryGlow = false,
+  isDisabled = false,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const fontScale = PixelRatio.getFontScale();
   const iconScaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
+    if (isDisabled) return;
+
     Animated.spring(iconScaleAnim, {
       toValue: 0.93,
       useNativeDriver: true,
@@ -44,6 +47,8 @@ const ThemedButton = ({
   };
 
   const handlePressOut = () => {
+    if (isDisabled) return;
+
     Animated.spring(iconScaleAnim, {
       toValue: 1,
       useNativeDriver: true,
@@ -66,6 +71,8 @@ const ThemedButton = ({
   };
 
   const handlePress = async () => {
+    if (isDisabled) return;
+
     await _internalPress();
 
     try {
@@ -147,7 +154,7 @@ const ThemedButton = ({
             style={[
               styles.buttonText,
               {
-                color: isPrimary ? Colors.textDark : Colors.textLight,
+                color: !isDisabled ? (isPrimary ? Colors.textDark : Colors.textLight) : Colors.textGray,
                 fontSize: fontSize / fontScale,
                 fontFamily: `Satoshi-${fontWeight}`,
               },

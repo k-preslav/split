@@ -11,9 +11,10 @@ import BigText from '../components/common/bigText'
 import { deviceInfo } from '../global/deviceInfo'
 import { getUserProfilePicImg, getUserProfilePicUrl } from '../lib/userProfilePic'
 import { guessPreferredCurrency } from '../lib/getCurrencyFromLocale'
+import { fetchUserProfile } from '../lib/getUser'
 
 const Index = () => {
-  const { fetchUserProfile, setGesturesEnabled } = useUser();
+  const { setGesturesEnabled } = useUser();
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const handleHomeScreen = async () => {
@@ -31,6 +32,9 @@ const Index = () => {
     catch (err) {
       console.error('Error fetching device info:', err);
     }
+
+    // router.navigate('user/account/set_account_password');
+    // return;
 
     // Get user info and redirect
     try {

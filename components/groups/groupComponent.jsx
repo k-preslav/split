@@ -8,7 +8,7 @@ import { getUserProfileByCode } from '../../lib/getUser';
 import { userDetails } from '../../lib/userDetails';
 import { getGroupImageUrl } from '../../lib/groupsApi';
 
-const GroupComponent = ({ group, isActive }) => {
+const GroupComponent = ({ group, shouldAnimate, isActive }) => {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const orbitRef = useRef();
 
@@ -35,7 +35,7 @@ const GroupComponent = ({ group, isActive }) => {
 
         <OrbitingFriendIcon
           ref={orbitRef}
-          friends={group.friendProfiles}
+          friends={group.friendProfiles || []}
           centerX={layout.width / 2}
           centerY={layout.height / 2}
         />
@@ -51,7 +51,6 @@ const groupStyles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    bottom: 70,
     justifyContent: 'center',
   },
   groupIconContainer: {

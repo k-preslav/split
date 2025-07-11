@@ -101,17 +101,19 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
   }));
 
   useEffect(() => {
-    startAnimation();
+    // Remove this:
+    // startAnimation();
 
+    // Cleanup remains
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-
       isAnimatingRef.current = false; 
     };
-  }, [badgeScales, friends]);
+  }, []); // only run on mount/unmount
+
 
   return (
     <>
@@ -128,7 +130,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
 
         return (
           <View
-            key={i + friend.userCode}
+            key={i + friend.userCode || i}
             style={[
               friendIconStyles.orbitingIcon,
               {

@@ -3,6 +3,7 @@ import { account, databases } from "../lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
 import { userDetails } from "../lib/userDetails";
 import { guessPreferredCurrency } from "../lib/getCurrencyFromLocale";
+import { fetchUserProfile } from "../lib/getUser";
 
 export const UserContext = createContext();
 
@@ -97,32 +98,6 @@ export function UserProvider({ children }) {
     });
   }
 
-  async function fetchUserProfile(userId) {
-    try {
-      const response = await databases.listDocuments(
-        process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
-        process.env.EXPO_PUBLIC_APPWRITE_USER_PROFILE_COLLECTION_ID,
-        [Query.equal('userId', userId)]
-      );
-
-      if (response.documents.length > 0) {
-        const result = response.documents[0];
-
-        console.log("User profile fetched.");
-        
-        userDetails.userProfile = result;
-        return result;
-      } else {
-        console.log("No user profile found for userId:", userId);
-        return null;
-      }
-    }
-    catch (error) {
-      console.error("Error fetching user profile:", error);
-      return null;
-    }
-  }
-
   async function generateUserCode() {
     const chars = 'abcdefghijklmnopqrstuvhwxyz0123456789';
     const length = 6;
@@ -152,7 +127,7 @@ export function UserProvider({ children }) {
   }
 
   return (
-    <UserContext.Provider value={{ register, login, logout, fetchUserProfile, setGesturesEnabled, areGesturesEnabled }}>
+    <UserContext.Provider value={{ register, login, logout, setGesturesEnabled, areGesturesEnabled }}>
       {children}
     </UserContext.Provider>
   )

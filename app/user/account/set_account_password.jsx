@@ -16,6 +16,10 @@ import { ArrowLeft, ArrowRight, StepBack } from 'lucide-react-native';
 import InputField from '../../../components/common/inputField';
 import HorizontalView from '../../../components/views/horizontalView';
 import ActionButton from '../../../components/common/actionButton';
+import { updateUserShouldBeLoggedOut } from '../../../lib/updateUser';
+import ThemedText from '../../../components/common/themedText';
+import { Colors } from '../../../components/themes/colors';
+import { sendChangePassword } from '../../../lib/appwrite';
 
 const SetAccountPassword = () => {
   const insets = useSafeAreaInsets();
@@ -42,6 +46,7 @@ const SetAccountPassword = () => {
     if (exists) {
       await login(userDetails._email, userDetails._password).then(async (res) =>{
         if (!res.code) { // If there is no error code, the login was successful
+          updateUserShouldBeLoggedOut(false);
           router.push('/user/account/get_account_code')
         }
         else {
@@ -93,6 +98,33 @@ const SetAccountPassword = () => {
 
         <FixedCenterView yOffset={260}>
           <InputField keyboard='password' placeholder='•••••••••' value={password} onChangeText={setPassword}/>
+          <ThemedText
+            fontSize={14}
+            color={Colors.textGray}
+            style={{
+              textDecorationLine: 'underline',
+              marginTop: 10,
+            }}
+            onPress={() => {
+              Alert.alert(
+                "Forgot Password?",
+                "If you forgot your password, you can reset it from your email",
+                [
+                  {
+                    text: "Send reset email",
+                    style: "default",
+                    onPress: async () => {
+                      await sendChangePassword(userDetails._email);
+                      Alert.alert("Password change email sent", "Please check your inbox and follow the instructions to change your password.");
+                    }
+                  },
+                  {
+                    text: "No",
+                  }
+                ]
+              )
+            }}
+          >Forgot password?</ThemedText>
         </FixedCenterView>
 
         <FixedBottomView>
