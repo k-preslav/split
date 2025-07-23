@@ -2,7 +2,7 @@ import { createContext, useState } from "react";
 import { account, databases } from "../lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
 import { userDetails } from "../lib/userDetails";
-import { guessPreferredCurrency } from "../lib/getCurrencyFromLocale";
+import { getCurrencyFromLocale } from "../lib/getCurrencyFromLocale";
 import { fetchUserProfile } from "../lib/getUser";
 
 export const UserContext = createContext();
@@ -67,7 +67,7 @@ export function UserProvider({ children }) {
   }
 
   async function createUserProfile(userData) {
-    const preferredCurrency = await guessPreferredCurrency();
+    const preferredCurrency = await getCurrencyFromLocale();
 
     await generateUserCode().then(async (code) => {
       try {

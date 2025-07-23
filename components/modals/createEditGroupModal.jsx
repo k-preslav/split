@@ -17,8 +17,27 @@ import { createNewGroup, tryFindGroupImageByGroupName, uploadGroupImage } from '
 import { userDetails } from '../../lib/userDetails'
 import { router } from 'expo-router'
 import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
+import UserIcon from '../user/userIcon'
+import { LinearGradient } from 'expo-linear-gradient'
+import { BlurView } from 'expo-blur'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
+  const [scrollY, setScrollY] = React.useState(0);
+  const scrollGradientOpacity = React.useMemo(() => {
+    const min = 0;
+    const max = 10;
+
+    // Clamp scrollY to the range
+    const clamped = Math.max(min, Math.min(scrollY, max));
+
+    // Normalize to range [0, 1]
+    const normalized = (clamped - min) / (max - min);
+
+    return normalized;
+  }, [scrollY]);
+
+
+
   const [groupName, setGroupName] = React.useState('New group')
   const [groupNameTemp, setGroupNameTemp] = React.useState('')
 
@@ -90,7 +109,10 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       return
     }
 
-    const profileImgUrl = await getUserProfilePicUrl(friend.profilePicId)
+    let profileImgUrl = null
+    if (friend.profilePicId) {
+      profileImgUrl = await getUserProfilePicUrl(friend.profilePicId)
+    }
 
     const friendData = {
       userCode: friend.userCode,
@@ -156,6 +178,11 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       groupImageStorageFile = await uploadGroupImage(groupImage)
     }
 
+    let billingDate = null;
+    if (paymentOptionIndex === 1 && !billingDate) {
+      billingDate = new Date();
+    }
+
     await createNewGroup(
       groupName,
       userDetails.userProfile.userId,
@@ -165,7 +192,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       parseFloat(fullAmount),
       parseFloat(friendShare),
       paymentOptionIndex,
-      billingDateOption
+      billingDateOption,
+      billingDate
     )
 
     onSubmit?.();
@@ -260,7 +288,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             value={groupNameTemp}
             onChangeText={setGroupNameTemp}
             autoCapitalize={'words'}
-            onKeyboardSubmit={async() => {             
+            onBlur={async() => {             
               setGroupName(groupNameTemp)
               const matchImage = await tryFindGroupImageByGroupName(groupNameTemp);
 
@@ -313,11 +341,11 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               backgroundColor: Colors.lightGray,
             }}
             extraLightBorder={true}
-            placeholder={`${getSymbolOfPreferredCurrency()}0.00`}
+            placeholder={`${getSymbolOfPreferredCurrency()} 0.00`}
             keyboardType="decimal-pad"
             value={fullAmountTemp}
             onChangeText={setFullAmoutTemp}
-            onKeyboardSubmit={() => {
+            onBlur={() => {
               const input = fullAmountTemp?.replace(',', '.').replace(getSymbolOfPreferredCurrency(), '') || '0.0'
               const num = parseFloat(input)
               if (num === 0) {
@@ -327,7 +355,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               const formatted = (Math.ceil(num * 10) / 10).toFixed(2)
 
               setFullAmout(formatted)
-              setFullAmoutTemp(`${getSymbolOfPreferredCurrency()}${formatted}`)
+              setFullAmoutTemp(`${getSymbolOfPreferredCurrency()} ${formatted}`)
 
               calculateShare()
             }}
@@ -409,7 +437,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           placeholder="Friend code"
           value={friendCodeInput}
           onChangeText={setFriendCodeInput}
-          onKeyboardSubmit={() => {
+          onBlur={() => {
             if (friendCodeInput?.length > 0) {
               addFriend(friendCodeInput);
               calculateShare();
@@ -456,6 +484,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           contentContainerStyle={{ paddingBottom: 16 }}
           style={{ backgroundColor: Colors.backgroundSecondary }}
           keyboardShouldPersistTaps="handled"
+          onScroll={(event) => setScrollY(event.nativeEvent.contentOffset.y)}
         >
           {isAddingFriend ? (
             <View
@@ -497,35 +526,28 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                   >
                   {/* Left group: image + name */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
-                    <View
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: 30,
-                        shadowColor: 'black',
-                        shadowOpacity: 0.2,
-                        shadowRadius: 10,
-                        shadowOffset: { width: 0, height: 0 },
-                        elevation: 5,
-                        overflow: 'visible',
-                        marginRight: 15,
-                      }}
-                      >
-                      <Image
-                        source={{ uri: friend.profileImgUrl }}
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 30,
-                        }}
-                        />
+                    <View style={{ 
+                      width: 64, 
+                      height: 64, 
+                      marginRight: 10, 
+                      left: -3,
+                      shadowColor: 'black',
+                      shadowOpacity: 0.2,
+                      shadowRadius: 10,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 5,
+                      overflow: 'visible',
+                    }}>
+                      <UserIcon
+                        user={friend}
+                        nameBarPosition='none'
+                      />
                     </View>
 
                     <ThemedText fontSize={20} fontWeight="Medium" style={{ flexShrink: 1 }}>
                       {friend.name}
                     </ThemedText>
                   </View>
-
 
                   {/* Trash button and split amount aligned right */}
                   <ThemedText
@@ -534,11 +556,11 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                     color={'#626262'}
                     style={{
                       position: 'absolute',
-                      marginLeft: '58%',
+                      marginLeft: '51%',
                     }}
                     >
                     {
-                      parseFloat(friendShare) > 0 ? `${getSymbolOfPreferredCurrency()}${parseFloat(friendShare).toFixed(2)}` : ''
+                      parseFloat(friendShare) > 0 ? `${getSymbolOfPreferredCurrency()} ${parseFloat(friendShare).toFixed(2)}` : ''
                     }
                   </ThemedText>
                   <ActionButton
@@ -580,6 +602,44 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             </View>
           )}
         </ScrollView>
+        <BlurView
+          intensity={scrollGradientOpacity * 7}
+          tint='dark'
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 65,
+            zIndex: 10,
+          }}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['rgba(45,45,45,1)', 'rgba(45,45,45,0.7)', 'rgba(45,45,45,0)']}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 60,
+            zIndex: 10,
+            opacity: scrollGradientOpacity,
+          }}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['rgba(45,45,45,0)', 'rgba(45,45,45,0.7)', Colors.backgroundSecondary]}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 40,
+            zIndex: 10,
+          }}
+          pointerEvents="none"
+        />
       </View>
       
       </View>

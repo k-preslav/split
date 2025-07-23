@@ -1,8 +1,10 @@
 import { View, Text } from 'react-native'
 import React from 'react'
-import { styles } from '../themes/styles';
+import { getStyles } from '../themes/styles';
 
 const BigText = ({ children, style, ...props }) => {
+  const styles = getStyles();
+
   return (
     <Text style={[styles.bigText, style]} {...props}>
       {children}

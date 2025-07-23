@@ -12,6 +12,8 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const orbitRef = useRef();
 
+  const groupStyles = getGroupStyles(Colors);
+
   useEffect(() => {
     if (isActive && orbitRef.current) {
       orbitRef.current.startAnimation();
@@ -35,7 +37,7 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
 
         <OrbitingFriendIcon
           ref={orbitRef}
-          friends={group.friendProfiles || []}
+          friends={group.membersProfiles || []}
           centerX={layout.width / 2}
           centerY={layout.height / 2}
         />
@@ -47,28 +49,31 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
 
 export default GroupComponent;
 
-const groupStyles = StyleSheet.create({
-  container: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupIconContainer: {
-    width: 145,
-    height: 145,
-    borderRadius: 99,
-    backgroundColor: Colors.backgroundSecondary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  groupIcon: {
-    width: 96,
-    height: 96,
-  },
-});
+
+export const getGroupStyles = (Colors) =>
+  StyleSheet.create({
+    container: {
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    groupIconContainer: {
+      width: 145,
+      height: 145,
+      borderRadius: 99,
+      backgroundColor: Colors.backgroundSecondary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    groupIcon: {
+      width: 96,
+      height: 96,
+    },
+  }
+);

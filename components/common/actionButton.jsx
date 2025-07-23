@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../themes/colors';
-import { styles } from '../themes/styles';
+import { getStyles } from '../themes/styles';
 
 const ActionButton = ({
   onPress,
@@ -23,10 +23,13 @@ const ActionButton = ({
   showStroke = true,
   disablePrimaryGlow = false,
   overrideBackgroundColor = null,
+  overiddeIconColor = null,
   icon = null,
 }) => {
   const [internalLoading, setInternalLoading] = useState(false);
   const iconScaleAnim = useRef(new Animated.Value(1)).current;
+
+  const styles = getStyles();
 
   const handlePressIn = () => {
     Animated.spring(iconScaleAnim, {
@@ -115,12 +118,12 @@ const ActionButton = ({
         {showLoading ? (
           <ActivityIndicator
             size="small"
-            color={isPrimary ? Colors.textDark : Colors.textLight}
+            color={isPrimary ? "#000000"  : Colors.textLight}
           />
         ) : (
           icon &&
           React.cloneElement(icon, {
-            color: isPrimary ? Colors.textDark : Colors.textLight,
+            color: overiddeIconColor ? overiddeIconColor : isPrimary ? "#000000" : Colors.textLight,
             size: overrideIconSize ? overrideIconSize : size * 0.43,
           })
         )}

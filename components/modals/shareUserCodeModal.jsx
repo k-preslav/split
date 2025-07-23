@@ -10,6 +10,7 @@ import HorizontalView from '../views/horizontalView';
 import ActionButton from '../common/actionButton';
 import * as Clipboard from 'expo-clipboard';
 import { moderateScale, moderateVerticalScale, scale } from 'react-native-size-matters';
+import { deviceInfo } from '../../global/deviceInfo';
 
 const ShareUserCodeModal = ({visible=true, userCode='no code', onClose}) => {
   const [codeCopied, setCodeCopied] = React.useState(false);
@@ -104,7 +105,7 @@ const shareCodeStayle = {
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 15,
+    paddingBottom: deviceInfo.platform === 'ios' && deviceInfo.osVersion < 19 ? 23 : 20,
     alignItems: 'center',
     justifyContent: 'center',
   }

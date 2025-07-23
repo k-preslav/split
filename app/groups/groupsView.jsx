@@ -26,6 +26,7 @@ import { friendIconStyles } from '../../components/groups/orbitingFriendsIcon';
 import GroupActionsPanel from '../../components/groups/groupActionsPanel';
 import { client } from '../../lib/appwrite';
 import { useIsFocused } from '@react-navigation/native';
+import PaymentModal from '../../components/modals/paymentModal';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ const Groups = () => {
 
   const [isFetchingGroups, setIsFetchingGroups] = useState(true);
   const [showLoadingText, setShowLoadingText] = useState(false);
+  const [userHasNoGroups, setUserHasNoGroups] = useState(false);
   
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
   const [justCreatedGroup, setJustCreatedGroup] = useState(false);
@@ -46,15 +48,15 @@ const Groups = () => {
   const liveUpdateSubRef = useRef(null);
 
   const enrichGroup = async (group) => {
-    const friendProfiles = await Promise.all(
+    const membersProfiles = await Promise.all(
       group.friendsCodes.map(code => getUserProfileByCode(code))
     );
 
     const ownerProfile = await getUserProfileById(group.ownerId);
     ownerProfile.owner = true;
-    friendProfiles.push(ownerProfile);
+    membersProfiles.push(ownerProfile);
 
-    const allFriendProfiles = friendProfiles.map(friend => ({
+    const allMembersProfiles = membersProfiles.map(friend => ({
       ...friend,
       paid: group.paidFriendsCodes.includes(friend.userCode),
     }));
@@ -68,8 +70,10 @@ const Groups = () => {
       groupId: group.$id,
       ownerId: group.ownerId,
       groupName: group.groupName,
-      friendProfiles: allFriendProfiles,
+      membersProfiles: allMembersProfiles,
+      friendsCodes: group.friendsCodes,
       paidFriendsCodes: group.paidFriendsCodes,
+      isMoneyCollected: group.isMoneyCollected || false,
       groupImageUrl,
       payAmount: group.payAmount || 0,
       splitAmount: group.splitAmount || 0,
@@ -82,9 +86,8 @@ const Groups = () => {
     fetchLock.current = true;
 
     setIsFetchingGroups(true);
-    const showLoadingTimeout = setTimeout(() => {
-      setShowLoadingText(true);
-    }, 1000);
+    setUserHasNoGroups(false);
+    const loadingTextTimeout = setTimeout(() => setShowLoadingText(true), 500);
 
     try {
       let baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
@@ -92,6 +95,7 @@ const Groups = () => {
 
       if (!baseGroups || baseGroups.length === 0) {
         setGroups([]);
+        setUserHasNoGroups(true);
         return;
       }
 
@@ -106,6 +110,7 @@ const Groups = () => {
       );
 
       setGroups(enrichedGroups);
+      setUserHasNoGroups(false);
 
       if (justCreatedGroup) {
         setJustCreatedGroup(false);
@@ -119,14 +124,24 @@ const Groups = () => {
         const targetIndex = lastOwnedIndex ?? 0;
 
         setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
-        }, 50);
+          try {
+            flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
+          } catch (error) {
+            flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+            setActiveGroupIndex(0);
+            console.warn('Failed scrolling to index:', error);
+          }
+        }, 250);
       }
     } catch (err) {
       console.error('Error fetching groups:', err);
     } finally {
       setIsFetchingGroups(false);
-      clearTimeout(showLoadingTimeout);
+      setShowLoadingText(false);
+
+      clearTimeout(loadingTextTimeout);
+      setShowLoadingText(false);
+
       fetchLock.current = false;
     }
   };
@@ -183,8 +198,14 @@ const Groups = () => {
 
           if (updatedGroupIndex > -1) {
             setTimeout(() => {
-              flatListRef.current?.scrollToIndex({ index: updatedGroupIndex, animated: true });
-            }, 50);
+              try {
+                flatListRef.current?.scrollToIndex({ index: updatedGroupIndex, animated: true });
+              } catch (error) {
+                flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+                setActiveGroupIndex(0);
+                console.warn('Failed scrolling to index:', error);
+              }
+            }, 250);
           }
         });
       }
@@ -291,7 +312,7 @@ const Groups = () => {
             Getting groups...
           </ThemedText>
         </View>
-      ) : groups.length === 0 ? (
+      ) : userHasNoGroups ? (
         <View
           style={{
             flex: 1,
@@ -352,55 +373,61 @@ const Groups = () => {
           />
 
           <FixedBottomView style={{ position: 'absolute', bottom: '35%' }}>
-            <NameBar
-              fontSize={18}
-              name={groups[activeGroupIndex]?.groupName || '-'}
-              icon={
-                <View
-                  style={[
-                    friendIconStyles.badge,
-                    {
-                      backgroundColor: 
-                        (isUserOwner()  || hasUserPaid())
-                        ? Colors.primary
-                        : Colors.lightGray,
-                      shadowColor:
-                        (isUserOwner()  || hasUserPaid())
-                        ? Colors.primary
-                        : 'black',
-                      transform: [{
-                        scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
-                      }],
-                    },
-                  ]}
-                >
-                  {isUserOwner() ? (
-                    <Crown width={18} strokeWidth={2.5} />
-                  ) : hasUserPaid() ? (
-                    <Check width={18} strokeWidth={3} />
-                  ) : (
-                    <Clock width={18} strokeWidth={2.25} color={Colors.light} />
-                  )}
-                </View>
-              }
-            />
-            {groups.length > 1 && (
-              <GroupPageIndicator
-                pagesCount={groups.length}
-                activePage={activeGroupIndex}
+            {groups.length > 0 && (
+              <>
+              <NameBar
+                fontSize={18}
+                name={groups[activeGroupIndex]?.groupName || '-'}
+                icon={
+                  <View
+                    style={[
+                      friendIconStyles.badge,
+                      {
+                        backgroundColor: 
+                          (isUserOwner()  || hasUserPaid())
+                          ? Colors.primary
+                          : Colors.lightGray,
+                        shadowColor:
+                          (isUserOwner()  || hasUserPaid())
+                          ? Colors.primary
+                          : 'black',
+                        transform: [{
+                          scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
+                        }],
+                      },
+                    ]}
+                  >
+                    {isUserOwner() ? (
+                      <Crown width={18} strokeWidth={2.5} />
+                    ) : hasUserPaid() ? (
+                      <Check width={18} strokeWidth={3} />
+                    ) : (
+                      <Clock width={18} strokeWidth={2.25} color={Colors.light} />
+                    )}
+                  </View>
+                }
               />
+              {groups.length > 1 && (
+                <GroupPageIndicator
+                  pagesCount={groups.length}
+                  activePage={activeGroupIndex}
+                />
+              )}
+              </>
             )}
           </FixedBottomView>
         </>
       )}
 
-      <FixedBottomView style={{ height: '29%' }}>
-        <GroupActionsPanel 
-          group={groups[activeGroupIndex]}
-          hasUserPaid={hasUserPaid()}
-          isUserOwner={isUserOwner()}
-        />
-      </FixedBottomView>
+      {!userHasNoGroups && (
+        <FixedBottomView style={{ height: '28%' }}>
+          <GroupActionsPanel 
+            group={groups[activeGroupIndex]}
+            hasUserPaid={hasUserPaid()}
+            isUserOwner={isUserOwner()}
+          />
+        </FixedBottomView>
+      )}
 
       <CreateEditGroupModal 
         visible={createEditGroupModalVisible} 

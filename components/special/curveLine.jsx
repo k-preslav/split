@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Text, TextPath, Defs } from 'react-native-svg';
 import { Colors } from '../themes/colors';
-import { styles } from '../themes/styles';
+import { getStyles } from '../themes/styles';
 
 const CurvedLine = ({
   height = 389,
@@ -39,6 +39,8 @@ const CurvedLine = ({
     : undefined;
 
   const topOffset = flipY ? 285 : -105;
+
+  const styles = getStyles();
 
   return (
     <View style={[{ position: 'absolute', top: topOffset, left: 0, right: 0 }, style]}>

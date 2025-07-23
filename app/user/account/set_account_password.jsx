@@ -142,6 +142,7 @@ const SetAccountPassword = () => {
               loadingOnPress={true}
               onPress={async () => {
                 userDetails._password = password;
+                userDetails._isAfterPasswordChange = false;
                 await handleSubmit();
               }}
             />

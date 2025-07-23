@@ -1,9 +1,11 @@
 import { View } from 'react-native'
 import React from 'react'
 import { Colors } from '../themes/colors'
-import { styles } from '../themes/styles'
+import { getStyles } from '../themes/styles'
 
 const HorizontalView = ({style, ...props}) => {
+  const styles = getStyles();
+
   return (
     <View 
       style={[styles.horizontalView, style]}

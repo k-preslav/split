@@ -5,6 +5,7 @@ import UserIcon from '../user/userIcon';
 import { Colors } from '../themes/colors';
 import { Check, Clock, Crown } from 'lucide-react-native';
 import { deviceInfo } from '../../global/deviceInfo';
+import { BlurView } from 'expo-blur';
 
 function getRandomInRange(min, max) {
   return Math.random() * (max - min) + min;
@@ -152,27 +153,34 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
                   position: 'absolute',
                   left: 45 + badgeX - 12,
                   top: 45 + badgeY - 12,
-                  backgroundColor: friend.owner
-                    ? Colors.primary
-                    : friend.paid
-                    ? Colors.primary
-                    : Colors.lightGray,
-                  shadowColor: friend.owner
-                    ? Colors.primary
-                    : friend.paid
-                    ? Colors.primary
-                    : 'black',
                   transform: [{ scale: badgeScales[i] }],
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  width: 24,
+                  height: 24,
+                  backgroundColor: friend.owner || friend.paid ? 'rgba(235, 255, 87, 0.95)' : 'rgba(65, 65, 65, 0.77)',
                 },
               ]}
             >
-              {friend.owner ? (
-                <Crown width={18} strokeWidth={2.5} />
-              ) : friend.paid ? (
-                <Check width={18} strokeWidth={3} />
-              ) : (
-                <Clock width={18} strokeWidth={2.25} color={Colors.light} />
-              )}
+              <BlurView
+                intensity={friend.owner || friend.paid ? 3 : 7}
+                tint={'regular'}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 99,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                {friend.owner ? (
+                  <Crown width={18} strokeWidth={2.5} />
+                ) : friend.paid ? (
+                  <Check width={18} strokeWidth={3} />
+                ) : (
+                  <Clock width={18} strokeWidth={2.25} color={"#F1F1E8"} />
+                )}
+              </BlurView>
             </Animated.View>
           </View>
         );
@@ -200,7 +208,6 @@ export const friendIconStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    opacity: 0.95,
     alignItems: 'center',
     justifyContent: 'center',
 

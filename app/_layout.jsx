@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import { userDetails } from '../lib/userDetails';
 import { fetchUserProfile } from '../lib/getUser';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 // This component is now a child of UserProvider, so it can use the hook.
 function RootLayoutNav() {
@@ -41,7 +42,7 @@ export default function Layout() {
     await fetchUserProfile(userDetails.userProfile.userId);
     
     const shouldLogOut = userDetails.userProfile?.shouldBeLoggedOut || false;
-    if (shouldLogOut) {
+    if (shouldLogOut && !userDetails._isAfterPasswordChange) {
       router.navigate('/user/user_welcome');
     }
   }
@@ -56,8 +57,10 @@ export default function Layout() {
   }, [segments]);
 
   return (
-    <UserProvider>
-      <RootLayoutNav />
-    </UserProvider>
+    <StripeProvider publishableKey={'pk_test_51Rk1CrHK9kxD95BvDUCGYatRvvX5R2A52FM2vNPurt61Ekyprx79yGtbaXZLzii078AohFsEXUF1PEYnS2u9Pp7X00oVsyIsDU'}>
+      <UserProvider>
+        <RootLayoutNav />
+      </UserProvider>
+    </StripeProvider>
   );
 }

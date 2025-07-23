@@ -1,4 +1,4 @@
-import { View, Text, Animated } from 'react-native'
+import { View, Text, Animated, Easing } from 'react-native'
 import React from 'react'
 import { Colors } from '../themes/colors';
 
@@ -8,7 +8,8 @@ const ProgressBar = ({ progress = 0, style }) => {
   React.useEffect(() => {
     Animated.timing(animatedValue, {
       toValue: Math.max(0, Math.min(progress, 1)),
-      duration: 350,
+      duration: 250,
+      easing: Easing.out(Easing.circle),
       useNativeDriver: false,
     }).start();
   }, [progress]);

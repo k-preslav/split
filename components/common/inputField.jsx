@@ -1,6 +1,6 @@
 import React from "react";
 import { Keyboard, TextInput } from "react-native";
-import { styles } from "../themes/styles";
+import { getStyles } from "../themes/styles";
 import { Colors } from "../themes/colors";
 
 const InputField = ({
@@ -22,6 +22,8 @@ const InputField = ({
 
   const [canBeCentered, setCanBeCentered] = React.useState(true);
   const [isFocused, setIsFocused] = React.useState(false);
+
+  const styles = getStyles();
 
   const handleOnBlur = () => {
     setIsFocused(false);

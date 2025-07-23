@@ -39,7 +39,7 @@ const MonospacedText = ({ userCode = '', fontSize=16, ...props }) => {
             style={{
               fontFamily: 'GeistMono',
               fontSize: fontSize / fontScale,
-              color: Colors.textDark,
+              color: "#000000",
               width: moderateScale(18),
               textAlign: 'center',
               transform: [{ translateY: moderateVerticalScale(-2) }],

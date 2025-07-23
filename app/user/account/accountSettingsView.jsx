@@ -3,7 +3,7 @@ import React, { useCallback, useEffect } from 'react'
 import ThemedView from '../../../components/views/themedView'
 import { styles } from '../../../components/themes/styles'
 import ActionButton from '../../../components/common/actionButton'
-import { ArrowLeft, ArrowLeftFromLine, ArrowRightFromLine, Check, ChevronLeft, DollarSign, Euro, LogOut, PoundSterlingIcon, X } from 'lucide-react-native'
+import { ArrowLeft, ArrowLeftFromLine, ArrowRightFromLine, Check, ChevronLeft, DollarSign, Euro, LogOut, PoundSterlingIcon, Wallet, WalletCards, X } from 'lucide-react-native'
 import { scale } from 'react-native-size-matters'
 import HorizontalView from '../../../components/views/horizontalView'
 import ThemedText from '../../../components/common/themedText'
@@ -25,9 +25,15 @@ import EnterPasswordModal from '../../../components/modals/enterPasswordModal'
 import { uploadUserProfilePic } from '../../../lib/userProfilePic'
 import { DELETE_USER_RES_CODES, deleteUser } from '../../../lib/userDelete'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
+import WalletModal from '../../../components/modals/walletModal'
+import VerifyEmailModal from '../../../components/modals/verifyEmailModal'
 
 const AccountSettingsView = () => {
   const {setGesturesEnabled, logout} = useUser();
+
+  const [walletModalVisible, setWalletModalVisible] = React.useState(false);
   
   const [userCodeShareModalVisible, setUserCodeShareModalVisible] = React.useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = React.useState(false);
@@ -41,37 +47,26 @@ const AccountSettingsView = () => {
   
   const [profilePicOriginal, setProfilePicOriginal] = React.useState(userDetails.userProfile.profilePicId || null);
   const [profilePicSelect, setProfilePicSelect] = React.useState(null);
-  
-  const [preferredCurrency, setPreferredCurrency] = React.useState(userDetails.userProfile.preferredCurrency || 'USD');
-  
+
   const [collectData, setCollectData] = React.useState(userDetails.userProfile.collectData);
   
   const [wantsToDeleteAccount, setWantsToDeleteAccount] = React.useState(false);
 
-  const [enableVerificationCheckRefresh, setEnableVerificationCheckRefresh] = React.useState(false);
   const [verified, setVerified] = React.useState(false);
+  const [verificationModalVisible, setVerificationModalVisible] = React.useState(false);
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(true);
   }, []));
 
+  const checkVerification = async () => {
+    const isVerifiedRes = await isVerified();
+    setVerified(isVerifiedRes);
+  };
+
   useEffect(() => {
-    const checkVerification = async () => {
-      const isVerifiedRes = await isVerified();
-      
-      if (isVerifiedRes !== verified) {
-        setEnableVerificationCheckRefresh(false);
-        setVerified(isVerifiedRes);
-      }
-    };
-    
     checkVerification();
-
-    if (!enableVerificationCheckRefresh) return;
-    const intervalId = setInterval(checkVerification, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [enableVerificationCheckRefresh]);
+  }, [verificationModalVisible]);
 
   const applyChangesAndClose = async () => {
     const updateNameRes = await updateUserName(name);
@@ -103,12 +98,6 @@ const AccountSettingsView = () => {
         Alert.alert("Failed to update profile picture", profilePicUpdateRes?.message || 'Something went wrong.');
         return;
       }
-    }
-
-    const updatePrefCurrencyRes = await updateUserPreferredCurrency(preferredCurrency);
-    if (updatePrefCurrencyRes.code) {
-      Alert.alert("Failed to update preferred currency", updatePrefCurrencyRes.message || 'Something went wrong.');
-      return;
     }
 
     const updateCollectData = await updateUserCollectData(collectData);
@@ -205,7 +194,7 @@ const AccountSettingsView = () => {
               fontSize={16}
               value={email}
               onChangeText={setEmail}
-              onKeyboardSubmit={() => {
+              onKeyboardSubmit={async() => {
                 if (newEmail !== email) {
                   setNewEmail(email)
 
@@ -215,7 +204,7 @@ const AccountSettingsView = () => {
                     setIsEmailChanged(true);
                   }
                   else {
-                    setVerified(true);
+                    await checkVerification();
                   }
                 }
               }}
@@ -241,13 +230,11 @@ const AccountSettingsView = () => {
                     setIsEmailChanged(true);
                   }
                   else {
-                    setVerified(true);
+                    await checkVerification();
                   }
                 } else if (!verified) {
                   await sendVerify();
-                  setEnableVerificationCheckRefresh(true);
-
-                  Alert.alert("Verification email sent", "Please check your inbox and follow the instructions to verify your email address.");
+                  setVerificationModalVisible(true);
                 }
               }}
             />
@@ -267,6 +254,7 @@ const AccountSettingsView = () => {
 
                 updateUserShouldBeLoggedOut(true);
                 setTimeout(() => {
+                  userDetails._isAfterPasswordChange = true;
                   router.navigate('/user/user_welcome');
                 }, 3000);
               }}
@@ -275,31 +263,16 @@ const AccountSettingsView = () => {
 
           <Separator />
           
-          <HorizontalView style={settingStyles.horizontalView}>
-            <ThemedText fontSize={19} fontWeight="Medium">Preferred Currency:</ThemedText>
-            <HorizontalView style={{gap: 5, alignItems: 'center'}}>
-              <ActionButton 
-                isPrimary={preferredCurrency === 'USD'}
-                isRound={false}
-                size={44}
-                icon={<DollarSign strokeWidth={2.5} />}
-                onPress={() => setPreferredCurrency('USD')}
-              />
-              <ActionButton 
-                isPrimary={preferredCurrency === 'EUR'}
-                isRound={false}
-                size={44}
-                icon={<Euro strokeWidth={2.5} />}
-                onPress={() => setPreferredCurrency('EUR')}
-              />
-              <ActionButton 
-                isPrimary={preferredCurrency === 'GBP'}
-                isRound={false}
-                size={44}
-                icon={<PoundSterlingIcon strokeWidth={2.5} />}
-                onPress={() => setPreferredCurrency('GBP')}
-              />
-            </HorizontalView>
+          <HorizontalView style={{paddingHorizontal: 7}}>
+            <ThemedButton
+              text='Wallet' 
+              isPrimary={false}
+              isRound={false}
+              sizeY={50}
+              sizeX={'100%'}
+              icon={<Wallet strokeWidth={2.5} style={{marginLeft: 3}} />}
+              onPress={() => setWalletModalVisible(true)}
+            />
           </HorizontalView>
 
           <Separator />
@@ -403,8 +376,29 @@ const AccountSettingsView = () => {
             </HorizontalView>
           </View>
         </ScrollView>
+        <LinearGradient
+          colors={['rgba(33,33,33,0)', 'rgba(33,33,33,0.7)', Colors.background]}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 40,
+            zIndex: 10,
+          }}
+          pointerEvents="none"
+        />
       </View>
-
+      
+      <VerifyEmailModal 
+        visible={verificationModalVisible}
+        onClose={() => setVerificationModalVisible(false)}
+        overrideEmail={newEmail}
+      />
+      <WalletModal 
+        visible={walletModalVisible}
+        onClose={() => setWalletModalVisible(false)}
+      />
       <ShareUserCodeModal 
         userCode={userDetails.userProfile.userCode}
         visible={userCodeShareModalVisible}
@@ -434,7 +428,6 @@ const AccountSettingsView = () => {
             }
             else if (deleteResponse === DELETE_USER_RES_CODES.SUCCESS) {
               Alert.alert("Sad to see you go 😔", "Your account has been successfully deleted.");
-              router.replace('/user/user_welcome');
             }
             else {
               Alert.alert("Error deleting account", "Something went wrong. Guess you will stick with us for a while longer.");
@@ -442,6 +435,7 @@ const AccountSettingsView = () => {
           }
 
           setPasswordModalVisible(false);
+          router.replace('/user/user_welcome');
         }}
       />
     </ThemedView>

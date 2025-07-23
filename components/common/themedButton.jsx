@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { styles } from '../themes/styles';
+import { getStyles } from '../themes/styles';
 import { Colors } from '../themes/colors';
 
 const ThemedButton = ({
@@ -29,11 +29,14 @@ const ThemedButton = ({
   extraLightWhenSecondary = false,
   showStroke = true,
   disablePrimaryGlow = false,
+  overrideIconSize = null,
   isDisabled = false,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const fontScale = PixelRatio.getFontScale();
   const iconScaleAnim = useRef(new Animated.Value(1)).current;
+
+  const styles = getStyles();
 
   const handlePressIn = () => {
     if (isDisabled) return;
@@ -71,7 +74,7 @@ const ThemedButton = ({
   };
 
   const handlePress = async () => {
-    if (isDisabled) return;
+    if (isDisabled || isLoading) return;
 
     await _internalPress();
 
@@ -132,7 +135,7 @@ const ThemedButton = ({
         >
           <ActivityIndicator
             size="small"
-            color={isPrimary ? Colors.textDark : Colors.textLight}
+            color={isPrimary ? "#000000" : Colors.textLight}
             style={{
               transform: [
                 { scaleX: sizeY ? sizeY * 0.025 : 1.5 },
@@ -154,7 +157,7 @@ const ThemedButton = ({
             style={[
               styles.buttonText,
               {
-                color: !isDisabled ? (isPrimary ? Colors.textDark : Colors.textLight) : Colors.textGray,
+                color: !isDisabled ? (isPrimary ? "#000000" : Colors.textLight) : Colors.textGray,
                 fontSize: fontSize / fontScale,
                 fontFamily: `Satoshi-${fontWeight}`,
               },
@@ -164,8 +167,8 @@ const ThemedButton = ({
           </Text>
           {icon &&
             React.cloneElement(icon, {
-              color: isPrimary ? Colors.textDark : Colors.textLight,
-              size: sizeY ? sizeY * 0.43 : undefined,
+              color: isPrimary ? "#000000": Colors.textLight,
+              size: overrideIconSize ? overrideIconSize : sizeY ? sizeY * 0.43 : undefined,
             })}
         </Animated.View>
       )}

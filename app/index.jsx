@@ -1,4 +1,4 @@
-import { ActivityIndicator, Button, Platform, Text, View } from 'react-native'
+import { ActivityIndicator, Button, Platform, Text, useColorScheme, View } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { Link, router } from 'expo-router'
 import { styles } from '../components/themes/styles'
@@ -10,12 +10,20 @@ import ThemedView from '../components/views/themedView'
 import BigText from '../components/common/bigText'
 import { deviceInfo } from '../global/deviceInfo'
 import { getUserProfilePicImg, getUserProfilePicUrl } from '../lib/userProfilePic'
-import { guessPreferredCurrency } from '../lib/getCurrencyFromLocale'
+import { getCurrencyFromLocale } from '../lib/getCurrencyFromLocale'
 import { fetchUserProfile } from '../lib/getUser'
+import { setColorScheme } from '../components/themes/colors'
 
 const Index = () => {
   const { setGesturesEnabled } = useUser();
   const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  // Automatically set the color scheme based on the device settings
+  const scheme = useColorScheme();
+
+  useEffect(() => {
+    if (scheme) setColorScheme(scheme);
+  }, [scheme]);
 
   const handleHomeScreen = async () => {
     // Get device info
@@ -41,6 +49,9 @@ const Index = () => {
       const user = await account.get();
       if (user) {
         const profile = await fetchUserProfile(user.$id);
+
+        // router.navigate('/subscriptionPlayground');
+        // return;
 
         if (profile) {
           router.navigate('/groups/groupsView');

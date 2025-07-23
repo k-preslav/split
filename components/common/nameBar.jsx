@@ -5,6 +5,8 @@ import { Colors } from '../themes/colors'
 import HorizontalView from '../views/horizontalView'
 
 const NameBar = ({name='-', fontSize=22, icon, style, ...props}) => {
+  const nameBarStyles = getNameBarStyles();
+
   return (
     <View style={[nameBarStyles.container, style]} {...props}>
       <HorizontalView>
@@ -21,7 +23,7 @@ const NameBar = ({name='-', fontSize=22, icon, style, ...props}) => {
 
 export default NameBar
 
-const nameBarStyles = {
+const getNameBarStyles = () => ({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -32,4 +34,4 @@ const nameBarStyles = {
     borderWidth: 1,
     borderColor: Colors.lightGray,
   },
-}
+});
