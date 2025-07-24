@@ -17,10 +17,10 @@ import VerticalView from '../../../components/views/verticalView'
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal'
 import { account, isVerified, sendChangePassword, sendVerify } from '../../../lib/appwrite'
 import ThemedButton from '../../../components/common/themedButton'
-import { Colors } from '../../../components/themes/colors'
+import { Colors, getGradientColors } from '../../../components/themes/colors'
 import { router, useFocusEffect } from 'expo-router'
 import { useUser } from '../../../hooks/useUser'
-import { updateUserCollectData, updateUserEmail, updateUserName, updateUserPreferredCurrency, updateUserProfilePic, updateUserShouldBeLoggedOut } from '../../../lib/updateUser'
+import { updateUserCollectData, updateUserEmail, updateUserName, updateUserProfilePic, updateUserShouldBeLoggedOut } from '../../../lib/updateUser'
 import EnterPasswordModal from '../../../components/modals/enterPasswordModal'
 import { uploadUserProfilePic } from '../../../lib/userProfilePic'
 import { DELETE_USER_RES_CODES, deleteUser } from '../../../lib/userDelete'
@@ -54,6 +54,8 @@ const AccountSettingsView = () => {
 
   const [verified, setVerified] = React.useState(false);
   const [verificationModalVisible, setVerificationModalVisible] = React.useState(false);
+
+  const gradientColors = getGradientColors();
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(true);
@@ -377,7 +379,7 @@ const AccountSettingsView = () => {
           </View>
         </ScrollView>
         <LinearGradient
-          colors={['rgba(33,33,33,0)', 'rgba(33,33,33,0.7)', Colors.background]}
+          colors={gradientColors}
           style={{
             position: 'absolute',
             bottom: 0,

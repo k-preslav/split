@@ -7,7 +7,7 @@ import ThemedText from '../common/themedText'
 import Separator from '../special/separator'
 import HorizontalView from '../views/horizontalView'
 import InputField from '../common/inputField'
-import { Colors } from '../themes/colors'
+import { Colors, colorScheme, getGradientColorsSecondary } from '../themes/colors'
 import ThemedButton from '../common/themedButton'
 import { selectImage } from '../../lib/imageSelect'
 import { getUserProfileByCode } from '../../lib/getUser'
@@ -18,8 +18,8 @@ import { userDetails } from '../../lib/userDetails'
 import { router } from 'expo-router'
 import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 import UserIcon from '../user/userIcon'
-import { LinearGradient } from 'expo-linear-gradient'
 import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [scrollY, setScrollY] = React.useState(0);
@@ -58,6 +58,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [isAddingFriend, setIsAddingFriend] = React.useState(false)
 
   const [friendShare, setFriendShare] = React.useState(0.0)
+
+  const gradientColors = getGradientColorsSecondary();
 
   const close = () => {
     setGroupNameTemp('')
@@ -602,34 +604,38 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             </View>
           )}
         </ScrollView>
-        <BlurView
-          intensity={scrollGradientOpacity * 7}
-          tint='dark'
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 65,
-            zIndex: 10,
-          }}
-          pointerEvents="none"
-        />
+        {colorScheme === 'dark' && (
+          <>
+          <BlurView
+            intensity={scrollGradientOpacity * 7}
+            tint= 'dark'
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 65,
+              zIndex: 10,
+            }}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={gradientColors}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 60,
+              zIndex: 10,
+              opacity: scrollGradientOpacity,
+            }}
+            pointerEvents="none"
+          />
+          </>
+        )}
         <LinearGradient
-          colors={['rgba(45,45,45,1)', 'rgba(45,45,45,0.7)', 'rgba(45,45,45,0)']}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 60,
-            zIndex: 10,
-            opacity: scrollGradientOpacity,
-          }}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={['rgba(45,45,45,0)', 'rgba(45,45,45,0.7)', Colors.backgroundSecondary]}
+          colors={gradientColors}
           style={{
             position: 'absolute',
             bottom: 0,

@@ -15,6 +15,8 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
   const [isLoading, setIsLoading] = useState(true);
   const [iconSize, setIconSize] = useState({ width: 0, height: 0 });
 
+  const friendIconStyles = getFriendIconStyles();
+
   const onPressed = async () => {
     if (enableSelectImage) {
       setIsLoading(true);
@@ -161,7 +163,7 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
 
 export default UserIcon;
 
-const friendIconStyles = StyleSheet.create({
+const getFriendIconStyles = () => ({
   container: {
     width: '100%',
     height: '100%',
@@ -186,7 +188,8 @@ const friendIconStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: Colors.textDark,
+    opacity: 0.6,
     borderRadius: 99,
     zIndex: 3,
   },

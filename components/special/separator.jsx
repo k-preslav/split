@@ -9,7 +9,7 @@ const Separator = ({ style }) => {
         {
           height: 1.65,
           width: '98%',
-          backgroundColor: '#393939',
+          backgroundColor: Colors.lightGray,
           opacity: 1,
           marginVertical: 8,
         },
