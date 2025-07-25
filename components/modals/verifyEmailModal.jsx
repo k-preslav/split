@@ -17,6 +17,7 @@ const VerifyEmailModal = ({ visible, onClose, overrideEmail }) => {
   const checkVerificationStatus = async () => {
     const verified = await isVerified();
     setVerifiedStatus(verified);
+
     if (verified) {
       clearInterval(intervalRef.current);
       setInterval(() => onClose(), 500);
@@ -136,7 +137,6 @@ const VerifyEmailModal = ({ visible, onClose, overrideEmail }) => {
                 shadowOpacity: verifiedStatus ? 0.25 : 0,
                 shadowRadius: 15,
                 shadowOffset: { width: 0, height: 0 },
-                elevation: 5,
               }}
             >
               {verifiedStatus ? 'Email Verified' : 'Not verified'}

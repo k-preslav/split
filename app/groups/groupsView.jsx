@@ -77,6 +77,8 @@ const Groups = () => {
       groupImageUrl,
       payAmount: group.payAmount || 0,
       splitAmount: group.splitAmount || 0,
+      billingDate: new Date(group.billingDate) || null,
+      isSubscription: group.paymentOptionIndex === 1,
     };
   };
 

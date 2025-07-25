@@ -36,7 +36,6 @@ const ProgressBar = ({ progress = 0, style }) => {
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.225,
           shadowRadius: 15,
-          elevation: 10,
           zIndex: 0,
         }}
       />

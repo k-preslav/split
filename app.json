@@ -36,7 +36,13 @@
       ],
       "expo-web-browser",
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ]
     ]
   }
 }

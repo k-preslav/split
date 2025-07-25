@@ -202,7 +202,6 @@ export const friendIconStyles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 5,
   },
   badge: {
     width: 24,
@@ -214,7 +213,5 @@ export const friendIconStyles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
-
-    elevation: 12,
   },
 });

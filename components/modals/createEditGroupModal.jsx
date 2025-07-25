@@ -20,6 +20,9 @@ import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 import UserIcon from '../user/userIcon'
 import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Camera, CameraView, useCameraPermissions } from 'expo-camera'
+import Constants from 'expo-constants';
+import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [scrollY, setScrollY] = React.useState(0);
@@ -35,8 +38,6 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
     return normalized;
   }, [scrollY]);
-
-
 
   const [groupName, setGroupName] = React.useState('New group')
   const [groupNameTemp, setGroupNameTemp] = React.useState('')
@@ -61,6 +62,9 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
   const gradientColors = getGradientColorsSecondary();
 
+  const [qrRequested, setQrRequested] = React.useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
   const close = () => {
     setGroupNameTemp('')
     setGroupName('New group')
@@ -82,6 +86,14 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
     setGroupImagePadding(0)
 
     onClose?.()
+  }
+
+  const openQrScanner = async () => {
+    if (!cameraPermission?.granted) {
+      requestCameraPermission();
+
+      setQrRequested(true);
+    }
   }
 
   const addFriend = async (code) => {
@@ -131,16 +143,12 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       return 0;
     }
 
-    const friendCount = friends.length;
+    const friendCount = friends.length + 1; // Include the user themselves in the share calculation
 
-    const rawNeeded = fullAmount / (friendCount + 1);
-    const rawFriendPayment = rawNeeded * 1.2;
+    const friendShare = fullAmount / friendCount;
 
-    // Round up to nearest cent
-    const friendPayment = Math.ceil(rawFriendPayment * 100) / 100;
-
-    setFriendShare(friendPayment);
-    return friendPayment;
+    setFriendShare(friendShare);
+    return friendShare;
   };
 
   React.useEffect(() => {
@@ -182,7 +190,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
     let billingDate = null;
     if (paymentOptionIndex === 1 && !billingDate) {
-      billingDate = new Date();
+      const billingDate = new Date();
+      billingDate.setDate(billingDate.getDate() - 1);
     }
 
     await createNewGroup(
@@ -193,6 +202,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       groupImageStorageFile.$id,
       parseFloat(fullAmount),
       parseFloat(friendShare),
+      parseFloat(calculateTotalPaymentAmount(friendShare)),
       paymentOptionIndex,
       billingDateOption,
       billingDate
@@ -473,7 +483,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               await addFriend(friendCodeInput)
               setFriendCodeInput('')
             } else {
-              console.log('Opening QR scanner')
+              await openQrScanner();
             }
           }}
           />
@@ -537,7 +547,6 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
                       shadowOpacity: 0.2,
                       shadowRadius: 10,
                       shadowOffset: { width: 0, height: 0 },
-                      elevation: 5,
                       overflow: 'visible',
                     }}>
                       <UserIcon
@@ -621,6 +630,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           />
           <LinearGradient
             colors={gradientColors}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0, y: 0 }}
             style={{
               position: 'absolute',
               top: 0,
@@ -657,10 +668,29 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           alignItems: 'center',
         }}
       >
-        <ThemedText fontSize={12} fontWeight={'Regular'} color={Colors.textGray}>
-          A 20% fee is added to each friend's share.
-        </ThemedText>
       </View>
+      
+      {/* {Constants.executionEnvironment !== "storeClient" && qrRequested && (
+        <CameraView
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1000,
+          }}
+          active={qrRequested && cameraPermission?.granted}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr'],
+          }}
+          onBarcodeScanned={({ data }) => {
+            setScannedData(data);
+            console.log("QR Code scanned:", data);
+          }}
+        />
+      )} */}
     </ThemedModal>
   )
 }

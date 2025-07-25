@@ -10,7 +10,7 @@ import HorizontalView from '../views/horizontalView'
 import { userDetails } from '../../lib/userDetails'
 import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 import ActionButton from '../common/actionButton'
-import { Ban, Edit, Pencil } from 'lucide-react-native'
+import { Ban, Edit, Pencil, Wallet } from 'lucide-react-native'
 import { Colors } from '../themes/colors'
 import { databases, isVerified, sendVerify } from '../../lib/appwrite'
 import ProgressBar from '../special/progressBar'
@@ -20,6 +20,7 @@ import { fetchUserProfile } from '../../lib/getUser'
 import { createTransfer } from '../../lib/stripeApi'
 import { updateGroup } from '../../lib/groupsApi'
 import VerifyEmailModal from '../modals/verifyEmailModal'
+import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
 
 const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
   const insets = useSafeAreaInsets();
@@ -60,6 +61,15 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
       }, 300);
     }
   }, [group])
+
+  function getNextChargeDate(billingDate) {
+    const now = new Date();
+    const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
+    const chargeDay = new Date(billingDate).getDate();
+
+    return `Next charge: ${chargeDay}/${nextMonth + 1 < 10 ? '0' : ''}${nextMonth + 1}`;
+  }
+
 
   const handleSetPaid = async() => {
     try {
@@ -143,35 +153,12 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
       console.error('Error deleting group:', error, error.code);
     }
   }
-
-  const calculateSingleShare = () => {
-    if (!group || !group.splitAmount) return 0;
-
-    const singleShare = group.splitAmount / 1.2;
-    return singleShare;
-  }
-  const calculateShare = (friendCount) => {
-    if (friendCount < 1) {
-      console.warn('Friend count is less than 1, returning 0 share.');
-      return 0;
-    }
-
-    const rawNeeded = group.payAmount / (friendCount + 1);
-    const rawFriendPayment = rawNeeded * 1.2;
-
-    // Round up to nearest cent
-    const friendPayment = Math.ceil(rawFriendPayment * 100) / 100;
-    console.log('Calculated share for friend count:', friendCount, 'is:', friendPayment);
-    return friendPayment;
-  };
-
   const calculatePaidAmount = () => {
     if (!group || !group.payAmount) return 0;
 
-    const singleShare = calculateSingleShare();
     const countOfPaidFriends = group.membersProfiles.filter(friend => friend.paid).length;
 
-    const totalPaid = (countOfPaidFriends * singleShare) + singleShare;
+    const totalPaid = (countOfPaidFriends * group.splitAmount) + group.splitAmount;
     return totalPaid;
   }
 
@@ -211,26 +198,28 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
           }}
         >
           {getSplitProgress() < 1 ? (
-            <>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'nowrap', gap: 2 }}>
+            <ThemedText fontSize={24} fontWeight="Regular">
+              {getSymbolOfPreferredCurrency()}
+            </ThemedText>
+
             <ThemedText
-                fontSize={24}
-                fontWeight="Regular"
-              >{getSymbolOfPreferredCurrency()}</ThemedText>
-              <ThemedText
-                fontSize={36}
-                fontWeight="Bold"
-              >{
-                calculatePaidAmount() > 0 ? calculatePaidAmount().toFixed(2) : '-'
-              }</ThemedText>
-              <ThemedText
-                fontSize={24}
-                fontWeight="Light"
-              >/</ThemedText>
-              <ThemedText
-                fontSize={24}
-                fontWeight="Regular"
-              >{group?.payAmount}</ThemedText>
-            </>
+              fontSize={36}
+              fontWeight="Bold"
+              style={{ marginHorizontal: 4 }}
+              numberOfLines={1}
+            >
+              {calculatePaidAmount() > 0 ? calculatePaidAmount().toFixed(2) : '-'}
+            </ThemedText>
+
+            <ThemedText fontSize={24} fontWeight="Light" marginRight={4}>
+              /
+            </ThemedText>
+
+            <ThemedText fontSize={24} fontWeight="Regular" style={{ flexShrink: 1, maxWidth: 100 }}>
+              {group?.payAmount}
+            </ThemedText>
+          </View>
           ) : (
             <ThemedText
               fontSize={28}
@@ -309,15 +298,6 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
                 }
               }}
             />
-            {isUserOwner && (
-              <ActionButton
-                isPrimary={false}
-                extraLightWhenSecondary={true}
-                icon={<Pencil strokeWidth={2.5} />}
-                size={52}
-              />
-
-            )}
           </HorizontalView>
         </View>
 
@@ -337,73 +317,86 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
             isUserOwner 
               ? getSplitProgress() < 1 
                 ? "Please wait for your friends to pay their share."
-                : "You can now collect the money"
+                : group?.isMoneyCollected 
+                  ? "You have collected the money"
+                  : "You can now collect the money"
               : hasUserPaid 
                 ? "You have paid your share :D"
-                : `Pay your share of ${getSymbolOfPreferredCurrency()}${calculateSingleShare().toFixed(2) || '-'} (excl. fee).`
+                : `Pay your share of ${getSymbolOfPreferredCurrency()} ${group?.splitAmount.toFixed(2) || '-'} (excl. fee).`
           }</ThemedText>
-          <ThemedButton
-            loadingOnPress={getSplitProgress() >= 1}
-            style={{ width: '100%' }} 
-            isPrimary={
-              // Owner, and hasn't setup wallet yet → highlight
-              (isUserOwner && !isWalletSetup) ||
+          <HorizontalView style={{gap: 8}}>
+            <ThemedButton
+              loadingOnPress={getSplitProgress() >= 1}
+              style={{ width: group?.isMoneyCollected && isUserOwner ? '79%' : '100%' }} 
+              isPrimary={
+                // Owner, and hasn't setup wallet yet → highlight
+                (isUserOwner && !isWalletSetup) ||
 
-              // Owner, split is complete, and money is NOT collected → highlight
-              (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected) ||
+                // Owner, split is complete, and money is NOT collected → highlight
+                (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected) ||
 
-              // Not owner and hasn't paid yet → highlight
-              (!isUserOwner && !hasUserPaid)
-            }
-            extraLightWhenSecondary={true}
-            isDisabled={
-              (isUserOwner && group?.isMoneyCollected) ||
-              (isUserOwner && isWalletSetup && getSplitProgress() < 1) ||
-              (!isUserOwner && hasUserPaid)
-            }
-            text={
-              isUserOwner
-                ? (
-                    isWalletSetup
-                      ? (
-                          getSplitProgress() >= 1
-                            ? (
-                                group?.isMoneyCollected
-                                  ? "Collected"
-                                  : (verified) ? "Collect money" : "Verify email"
-                              )
-                            : "Waiting for friends"
-                        )
-                      : "Setup wallet"
-                  )
-                : (
-                    hasUserPaid
-                      ? "Already paid"
-                      : (verified ? "Pay split" : "Verify email to pay")
-                  )
-            }
-            onPress={async() => {
-              if (!verified) {
-                await sendVerify();
-                setVerifyModalVisible(true);
-                return;
+                // Not owner and hasn't paid yet → highlight
+                (!isUserOwner && !hasUserPaid)
               }
+              extraLightWhenSecondary={true}
+              isDisabled={
+                (isUserOwner && group?.isMoneyCollected) ||
+                (isUserOwner && isWalletSetup && getSplitProgress() < 1) ||
+                (!isUserOwner && hasUserPaid)
+              }
+              text={
+                isUserOwner
+                  ? (
+                      isWalletSetup
+                        ? (
+                            getSplitProgress() >= 1
+                              ? (
+                                  group?.isMoneyCollected
+                                    ? "Collected in Wallet"
+                                    : (verified) ? "Collect money" : "Verify email"
+                                )
+                              : "Waiting for friends"
+                          )
+                        : "Setup wallet"
+                    )
+                  : (
+                      hasUserPaid
+                        ? group?.billingDate ? getNextChargeDate(group?.billingDate) : "Already paid"
+                        : (verified ? "Pay split" : "Verify email to pay")
+                    )
+              }
+              onPress={async() => {
+                if (!verified) {
+                  await sendVerify();
+                  setVerifyModalVisible(true);
+                  return;
+                }
 
-              if (isUserOwner) {
-                if (isWalletSetup) {
-                  if (getSplitProgress() >= 1) {
-                    await handleCollectMoney();
+                if (isUserOwner) {
+                  if (isWalletSetup) {
+                    if (getSplitProgress() >= 1) {
+                      await handleCollectMoney();
+                    }
+                  } else {
+                    await fetchUserProfile(userDetails.userProfile.userId);
+
+                    setWalletModalVisible(true);
                   }
                 } else {
-                  await fetchUserProfile(userDetails.userProfile.userId);
-
-                  setWalletModalVisible(true);
+                  setPayModalVisible(true);
                 }
-              } else {
-                setPayModalVisible(true);
-              }
-            }}  
-          /> 
+              }}  
+            />
+
+            {isUserOwner && getSplitProgress() >= 1 && group?.isMoneyCollected && (
+              <ActionButton 
+                icon={<Wallet strokeWidth={2.5} />}
+                onPress={() => {
+                  setWalletModalVisible(true);
+                }}
+              /> 
+            )}
+          </HorizontalView>
         </FixedBottomView>
         </>
       )}
@@ -417,7 +410,7 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
       />
 
       <PaymentModal
-        paymentAmount={group?.splitAmount} 
+        originalPaymentAmount={group?.splitAmount}
         isVisible={payModalVisible}
         onClose={() => setPayModalVisible(false)}
         onSuccess={handleSetPaid}

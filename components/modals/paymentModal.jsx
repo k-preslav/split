@@ -15,8 +15,10 @@ import ActionButton from '../common/actionButton';
 import { Check, CheckCheck, CheckCircle, CheckCircle2, CheckLine, CheckSquare, CheckSquare2, ChevronDown, ChevronRight } from 'lucide-react-native';
 import { scale } from 'react-native-size-matters';
 import { fetchStripeCustomerId } from '../../lib/stripeApi';
+import FeeInfoModal from './feeInfoModal';
+import { calculateTotalPaymentAmount } from '../../lib/paymentFee';
 
-const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
+const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) => {
   const [isLoading, setIsLoading] = useState(false);
   
   const { createPaymentMethod, confirmPayment } = useStripe();
@@ -28,8 +30,10 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
 
   const [modalHeight, setModalHeight] = useState('52%');
 
+  const [feeInfoModalVisible, setFeeInfoModalVisible] = useState(false);
+
   useEffect(() => {
-    setModalHeight(paymentMethodIndex === 0 ? '44%' : '33.5%');
+    setModalHeight(paymentMethodIndex === 0 ? '45%' : '33.5%');
   }, [paymentMethodIndex]);
 
   const close = () => {
@@ -46,7 +50,7 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          amount: Math.round(paymentAmount * 100),
+          amount: Math.round(calculateTotalPaymentAmount(originalPaymentAmount) * 100),
           customerId: customerId
         }),
       });
@@ -79,7 +83,7 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
       return;
     }
 
-    const { error: confirmError, paymentIntent } = await confirmPayment(clientSecret, {
+    const { error: confirmError } = await confirmPayment(clientSecret, {
       paymentMethodType: 'Card',
       paymentMethodData: {
         billingDetails: {
@@ -152,7 +156,7 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
             <HorizontalView style={{ justifyContent: 'center', alignItems: 'center', gap: 6 }}>
               <CardField
                 onFocus={() => setModalHeight('62.5%')}
-                onBlur={() => setModalHeight('44%')}
+                onBlur={() => setModalHeight('45%')}
                 postalCodeEnabled={false}
                 onCardChange={(details) => {
                   setCardDetails(details);
@@ -180,15 +184,21 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
 
       <FixedBottomView style={{paddingBottom: 10 }}>
         <ThemedText
-          fontSize={12}
+          fontSize={14}
           fontWeight={'Regular'}
           color={Colors.textGray}
-          style={{ marginBottom: 10 }}>
-          A 20% fee is added to the share.
+          style={{
+            marginBottom: 8,
+            textDecorationLine: 'underline',
+           }}
+           onPress={() => {
+            setFeeInfoModalVisible(true);
+           }}>
+          A fee is added to the share.
         </ThemedText>
 
         <ThemedButton
-          text={showPayButtonSuccess ? "" : `Pay Now - ${getSymbolOfPreferredCurrency()}${paymentAmount?.toFixed(2) || '0.00'}`}
+          text={showPayButtonSuccess ? "" : `Pay Now - ${getSymbolOfPreferredCurrency()} ${calculateTotalPaymentAmount(originalPaymentAmount)?.toFixed(2) || '0.00'}`}
           icon={showPayButtonSuccess ? <CheckCheck strokeWidth={2.35} /> : null}
           overrideIconSize={40}
           isDisabled={!cardDetails?.complete || isLoading || showPayButtonSuccess}
@@ -199,6 +209,12 @@ const PaymentModal = ({paymentAmount, isVisible, onClose, onSuccess}) => {
           onPress={handlePayment}
         />
       </FixedBottomView>
+
+      <FeeInfoModal 
+        originalPaymentAmount={originalPaymentAmount}
+        visible={feeInfoModalVisible}
+        onClose={() => setFeeInfoModalVisible(false)}
+      />
     </ThemedModal>
   );
 };

@@ -7,6 +7,7 @@ import { useUser } from '../../hooks/useUser';
 import { getUserProfileByCode } from '../../lib/getUser';
 import { userDetails } from '../../lib/userDetails';
 import { getGroupImageUrl } from '../../lib/groupsApi';
+import { Calendar, RefreshCcw } from 'lucide-react-native';
 
 const GroupComponent = ({ group, shouldAnimate, isActive }) => {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
@@ -29,11 +30,36 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
           setLayout({ width, height });
         }}
       >
-        <Image
-          source={{ uri: group.groupImageUrl }}
-          style={groupStyles.groupIcon}
-          resizeMode="contain"
-        />
+        <View>
+          <Image
+            source={{ uri: group.groupImageUrl }}
+            style={groupStyles.groupIcon}
+            resizeMode="contain"
+          />
+        </View>
+
+        {group.isSubscription && (
+          <View style={{
+            position: 'absolute',
+            right: 5,
+            bottom: 5,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: Colors.lightGray,
+            borderRadius: 99,
+            padding: 8,
+            shadowColor: 'black',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+          }}>
+            <Calendar
+              strokeWidth={2}
+              color={Colors.textLight}
+              size={18}
+              />
+          </View>
+        )}
 
         <OrbitingFriendIcon
           ref={orbitRef}
@@ -66,7 +92,6 @@ export const getGroupStyles = (Colors) =>
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.25,
       shadowRadius: 8,
-      elevation: 8,
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',

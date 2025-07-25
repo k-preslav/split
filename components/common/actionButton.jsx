@@ -97,7 +97,6 @@ const ActionButton = ({
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.125,
           shadowRadius: 20,
-          elevation: 10,
         },
         showStroke && {
           borderWidth: 1,

@@ -30,7 +30,6 @@ const UserCode = ({ userCode, fontSize, ...props }) => {
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.1,
           shadowRadius: 10,
-          elevation: 10,
           ...props.style,
         }}
       >

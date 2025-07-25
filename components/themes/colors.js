@@ -33,7 +33,7 @@ export function setColorScheme(scheme) {
 
   Colors.textLight = scheme === 'dark' ? '#F1F1E8' : '#000000';
   Colors.textDark = scheme === 'dark' ? '#000000' : '#E5E5E5';
-  Colors.textGray = scheme === 'dark' ? '#555555' : '#AEAEAE';
+  Colors.textGray = scheme === 'dark' ? '#797979' : '#AEAEAE';
 
   Colors.buttonSecondary = scheme === 'dark' ? '#2D2D2D' : '#E5E5E5';
   Colors.buttonSecondaryLighter = scheme === 'dark' ? '#373737' : '#F3F3F3';

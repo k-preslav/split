@@ -29,7 +29,6 @@ const MonospacedText = ({ userCode = '', fontSize=16, ...props }) => {
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.3,
           shadowRadius: 25,
-          elevation: 10,
           ...props.style,
         }}
       >
