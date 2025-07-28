@@ -1,4 +1,4 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Animated, Easing } from 'react-native';
 import React, { useCallback, useEffect } from 'react'
 import ThemedView from '../../../components/views/themedView'
 import { styles } from '../../../components/themes/styles'
@@ -17,7 +17,7 @@ import VerticalView from '../../../components/views/verticalView'
 import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal'
 import { account, isVerified, sendChangePassword, sendVerify } from '../../../lib/appwrite'
 import ThemedButton from '../../../components/common/themedButton'
-import { Colors, getGradientColors } from '../../../components/themes/colors'
+import { Colors, colorScheme, getGradientColors, setColorScheme } from '../../../components/themes/colors'
 import { router, useFocusEffect } from 'expo-router'
 import { useUser } from '../../../hooks/useUser'
 import { updateUserCollectData, updateUserEmail, updateUserName, updateUserProfilePic, updateUserShouldBeLoggedOut } from '../../../lib/updateUser'
@@ -29,37 +29,41 @@ import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
 import WalletModal from '../../../components/modals/walletModal'
 import VerifyEmailModal from '../../../components/modals/verifyEmailModal'
+import { fetchUserProfile } from '../../../lib/getUser';
 
 const AccountSettingsView = () => {
-  const {setGesturesEnabled, logout} = useUser();
+  const { setGesturesEnabled, logout } = useUser();
 
   const [walletModalVisible, setWalletModalVisible] = React.useState(false);
-  
   const [userCodeShareModalVisible, setUserCodeShareModalVisible] = React.useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = React.useState(false);
   const [password, setPassword] = React.useState('');
-  
   const [name, setName] = React.useState(userDetails.userProfile.name || '');
-  
   const [email, setEmail] = React.useState(userDetails.userProfile.email || '');
   const [newEmail, setNewEmail] = React.useState(userDetails.userProfile.email || '');
   const [isEmailChanged, setIsEmailChanged] = React.useState(false);
-  
   const [profilePicOriginal, setProfilePicOriginal] = React.useState(userDetails.userProfile.profilePicId || null);
   const [profilePicSelect, setProfilePicSelect] = React.useState(null);
-
   const [collectData, setCollectData] = React.useState(userDetails.userProfile.collectData);
-  
   const [wantsToDeleteAccount, setWantsToDeleteAccount] = React.useState(false);
-
   const [verified, setVerified] = React.useState(false);
   const [verificationModalVisible, setVerificationModalVisible] = React.useState(false);
-
   const gradientColors = getGradientColors();
 
-  useFocusEffect(useCallback(() => {
-    setGesturesEnabled(true);
-  }, []));
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [hasLoaded, setHasLoaded] = React.useState(false);
+
+  // Animation state
+  const contentOpacity = React.useRef(new Animated.Value(0)).current;
+  const contentTranslateY = React.useRef(new Animated.Value(50)).current;
+  const loadingOpacity = React.useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsLoading(true)
+      setGesturesEnabled(true);
+    }, [])
+  );
 
   const checkVerification = async () => {
     const isVerifiedRes = await isVerified();
@@ -70,18 +74,49 @@ const AccountSettingsView = () => {
     checkVerification();
   }, [verificationModalVisible]);
 
+  useEffect(() => {
+    if (!isLoading && hasLoaded) {
+      // Trigger animation when loading is complete
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
+          toValue: 1,
+          duration: 650,
+          easing: Easing.out(Easing.exp),
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentTranslateY, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.out(Easing.exp),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isLoading, hasLoaded]);
+
+  useEffect(() => {
+    if (isLoading) {
+      // Fade in the ActivityIndicator
+      Animated.timing(loadingOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isLoading]);
+
   const applyChangesAndClose = async () => {
     const updateNameRes = await updateUserName(name);
     if (updateNameRes.code) {
-      Alert.alert("Failed to update name", updateNameRes.message || 'Something went wrong.');
+      Alert.alert('Failed to update name', updateNameRes.message || 'Something went wrong.');
       return;
     }
 
     if (isEmailChanged) {
       const emailUpdateRes = await updateUserEmail(newEmail, password);
       if (emailUpdateRes.code) {
-        if (emailUpdateRes.code !== 409) { // email is the same, so what?
-          Alert.alert("Failed to update email", emailUpdateRes.message || 'Something went wrong.');
+        if (emailUpdateRes.code !== 409) {
+          Alert.alert('Failed to update email', emailUpdateRes.message || 'Something went wrong.');
           return;
         }
       }
@@ -90,308 +125,350 @@ const AccountSettingsView = () => {
     if (profilePicSelect) {
       const profilePicUpload = await uploadUserProfilePic(profilePicSelect, profilePicOriginal);
       if (!profilePicUpload) {
-        Alert.alert("Failed to upload profile picture", "Please try again.");
+        Alert.alert('Failed to upload profile picture', 'Please try again.');
         return;
       }
 
       const profilePicId = profilePicUpload?.$id;
       const profilePicUpdateRes = await updateUserProfilePic(profilePicId);
       if (!profilePicUpdateRes) {
-        Alert.alert("Failed to update profile picture", profilePicUpdateRes?.message || 'Something went wrong.');
+        Alert.alert('Failed to update profile picture', profilePicUpdateRes?.message || 'Something went wrong.');
         return;
       }
     }
 
     const updateCollectData = await updateUserCollectData(collectData);
     if (updateCollectData.code) {
-      Alert.alert("Failed to update collect data preference", updateCollectData.message || 'Something went wrong.');
+      Alert.alert('Failed to update collect data preference', updateCollectData.message || 'Something went wrong.');
       return;
     }
 
-    router.replace('/');
-  }
+    await fetchUserProfile(userDetails.userProfile.userId);
+    router.navigate('/groups/groupsView');
+  };
 
   return (
-    <ThemedView style={{
-      flex: 1,
-      width: '100%',
-      paddingHorizontal: 16,
-      gap: 10,
-      justifyContent: 'flex-start',
-      alignItems: 'flex-start',
-    }}>
-      <HorizontalView style={{
-        width: '100%'
-      }}>
-        <ActionButton 
-          isPrimary={false}
-          overrideIconSize={28}
-          icon={<ChevronLeft style={{right: 1}} strokeWidth={2.5} />}
-          onPress={() => router.back()}
-        />
-        <ThemedText
-          fontSize={24}
-          fontWeight={'Medium'}
-        >Account Settings</ThemedText>
-
-        <ActionButton 
-          icon={<Check strokeWidth={2.7}/>}
-          loadingOnPress={true}
-          onPress={async () => await applyChangesAndClose()}
-        />
-      </HorizontalView>
-
-      <Separator />
-
-      <HorizontalView style={[settingStyles.horizontalView, {height: 120}]}>
-        <View style={{
-          width: 120,
-          height: 120
-        }}>
-          <UserIcon 
-            enableSelectImage={true}
-            onImageSelected={(image) => setProfilePicSelect(image)}
-            nameBarPosition='none'
-            user={userDetails.userProfile}/>
-        </View>
-
-        <VerticalView style={{
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          gap: 3,
-        }}>
-          <InputField 
-            placeholder='-'
-            autoCapitalize='words'
-            style={{
-              height: 45,
-            }}
-            value={name}
-            onChangeText={setName}
-          />
-          <UserCodeShare 
-            userCode={userDetails.userProfile.userCode}
-            onShare={() => setUserCodeShareModalVisible(true)}
-          />
-        </VerticalView>
-      </HorizontalView>
-
-      <Separator />
-
-      <View style={{ flex: 1, width: '100%' }}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
-        >
-          <HorizontalView style={[settingStyles.horizontalView, {gap: 5}]}>
-            <ThemedText fontSize={20} fontWeight="Medium">Email:</ThemedText>
-            <InputField 
-              placeholder="-"
-              autoCapitalize="none"
-              keyboard="email"
-              width={200}
-              fontSize={16}
-              value={email}
-              onChangeText={setEmail}
-              onKeyboardSubmit={async() => {
-                if (newEmail !== email) {
-                  setNewEmail(email)
-
-                  if (email !== userDetails.userProfile.email) {
-                    setVerified(false);
-                    setPasswordModalVisible(true);
-                    setIsEmailChanged(true);
-                  }
-                  else {
-                    await checkVerification();
-                  }
-                }
-              }}
-            />
-            <ThemedButton 
-              text={newEmail === email ? (verified ? "Verified" : "Verify") : ''}
-              icon={newEmail !== email && <ArrowRightFromLine style={{right: 5}} strokeWidth={2.5} />}
-              isPrimary={!verified || newEmail !== email}
-              isRound={false}
-              sizeY={48}
-              sizeX={70}
-              fontSize={verified ? 12 : 16}
-              disablePrimaryGlow={true}
-              loadingOnPress={!verified}
-              isDisabled={verified && newEmail === email}
-              onPress={async() => {
-                if (newEmail !== email) {
-                  setNewEmail(email);
-
-                  if (email !== userDetails.userProfile.email) {
-                    setVerified(false);
-                    setPasswordModalVisible(true);
-                    setIsEmailChanged(true);
-                  }
-                  else {
-                    await checkVerification();
-                  }
-                } else if (!verified) {
-                  await sendVerify();
-                  setVerificationModalVisible(true);
-                }
-              }}
-            />
-          </HorizontalView>
-
-          <HorizontalView style={settingStyles.horizontalView}>
-            <ThemedText fontSize={20} fontWeight="Medium">Password:</ThemedText>
-            <ThemedButton 
-              text="Change Password"
-              isPrimary={false}
-              sizeY={50}
-              sizeX={235}
-              fontSize={16}
-              onPress={async() => {
-                await sendChangePassword();
-                Alert.alert("Password change email sent", "Please check your inbox and follow the instructions to change your password.");
-
-                updateUserShouldBeLoggedOut(true);
-                setTimeout(() => {
-                  userDetails._isAfterPasswordChange = true;
-                  router.navigate('/user/user_welcome');
-                }, 3000);
-              }}
-            />
-          </HorizontalView>
-
-          <Separator />
-          
-          <HorizontalView style={{paddingHorizontal: 7}}>
-            <ThemedButton
-              text='Wallet' 
-              isPrimary={false}
-              isRound={false}
-              sizeY={50}
-              sizeX={'100%'}
-              icon={<Wallet strokeWidth={2.5} style={{marginLeft: 3}} />}
-              onPress={() => setWalletModalVisible(true)}
-            />
-          </HorizontalView>
-
-          <Separator />
-
-          <HorizontalView style={settingStyles.horizontalView}>
-            <ThemedText fontSize={20} fontWeight="Medium">Collect anonymous data:</ThemedText>
-            <HorizontalView style={{gap: 5, alignItems: 'center'}}>
-              <ActionButton 
-                isPrimary={collectData === true}
-                isRound={false}
-                size={44}
-                icon={<Check strokeWidth={3} />}
-                onPress={() => setCollectData(true)}
-              />
-              <ActionButton 
-                isPrimary={collectData === false}
-                isRound={false}
-                size={44}
-                icon={<X strokeWidth={2.5} />}
-                onPress={() => setCollectData(false)}
-              />
-            </HorizontalView>
-          </HorizontalView>
-          <HorizontalView style={{flex: 1, justifyContent: 'space-around'}}>
-            <ThemedButton 
-              text='Privacy Policy'
-              isPrimary={false}
-              isRound={false}
-              fontSize={18}
-              fontWeight='Medium'
-              sizeX={170}
-              sizeY={50}
-            />
-            <ThemedButton 
-              text='Terms of Service'
-              isPrimary={false}
-              isRound={false}
-              fontSize={18}
-              fontWeight='Medium'
-              sizeX={170}
-              sizeY={50}
-            />
-          </HorizontalView>
-
-          <Separator />
-          <View style={{width: '100%', alignItems: 'center'}}>
-            <ThemedButton 
-              text='Log out'
-              isPrimary={false}
-              isRound={false}
-              fontSize={18}
-              sizeX={"96%"}
-              sizeY={50}
-              icon={<LogOut strokeWidth={2.5} />}
-              onPress={async () => {
-                Alert.alert(
-                  "Log out", "Are you sure you want to log out?",
-                  [
-                    {
-                      text: "Cancel",
-                      style: "cancel"
-                    },
-                    {
-                      text: "Log out",
-                      onPress: async () => {
-                        await logout();
-                        router.replace('/user/user_welcome');
-                      }
-                    }
-                  ]
-                )
-              }}
-            />
-            <HorizontalView style={{gap: 3.5, marginTop: 14}}>
-              <ThemedText
-                fontSize={14}
-                fontWeight="Regular"
-              >If you want to delete your account, you can</ThemedText>
-              <ThemedText
-                fontSize={14}
-                color={Colors.red}
-                style={{textDecorationLine: 'underline'}}
-                fontWeight="Regular"
-                onPress={() => {
-                  Alert.alert("Are you sure?", "This action cannot be undone. Your account will be permanently deleted.", [
-                    {
-                      text: "Cancel",
-                      style: "cancel"
-                    },
-                    {
-                      text: "Delete Account",
-                      style: "destructive",
-                      onPress: () => {
-                        setWantsToDeleteAccount(true);
-                        setPasswordModalVisible(true);
-                      }
-                    }
-                  ])
-                }}
-              >click here</ThemedText>
-            </HorizontalView>
-          </View>
-        </ScrollView>
-        <LinearGradient
-          colors={gradientColors}
+    <ThemedView
+      style={{
+        flex: 1,
+        width: '100%',
+        paddingHorizontal: 16,
+        gap: 10,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+      }}
+    >
+      {isLoading ? (
+        <Animated.View
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 40,
-            zIndex: 10,
+            opacity: loadingOpacity, // Apply the animated opacity
+            width: '100%',
+            flex: 1,
+            bottom: 35,
+            gap: 7,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
-          pointerEvents="none"
-        />
-      </View>
-      
+        >
+          <ActivityIndicator color={Colors.textGray} />
+          <ThemedText fontSize={16} fontWeight="Medium" color={Colors.textGray}>
+            Getting profile...
+          </ThemedText>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          style={{
+            opacity: hasLoaded ? contentOpacity : 0,
+            transform: [{ translateY: contentTranslateY }],
+            flex: 1,
+            width: '100%',
+          }}
+        > 
+          <HorizontalView
+            style={{
+              width: '100%',
+            }}
+          >
+            <ActionButton
+              isPrimary={false}
+              overrideIconSize={28}
+              icon={<ChevronLeft style={{ right: 1 }} strokeWidth={2.5} />}
+              onPress={() => router.back()}
+            />
+            <ThemedText fontSize={24} fontWeight={'Medium'}>
+              Account Settings
+            </ThemedText>
+
+            <ActionButton
+              icon={<Check strokeWidth={2.7} />}
+              loadingOnPress={true}
+              onPress={async () => await applyChangesAndClose()}
+            />
+          </HorizontalView>
+
+          <Separator />
+
+          <HorizontalView style={[settingStyles.horizontalView, { height: 120 }]}>
+            <View
+              style={{
+                width: 120,
+                height: 120,
+              }}
+            >
+              <UserIcon
+                enableSelectImage={true}
+                onImageSelected={(image) => setProfilePicSelect(image)}
+                nameBarPosition="none"
+                user={userDetails.userProfile}
+                onLoaded={() => {
+                  setHasLoaded(true);
+                  setTimeout(() => {
+                    setIsLoading(false);
+                  }, 350);
+                }}
+              />
+            </View>
+
+            <VerticalView
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                gap: 3,
+              }}
+            >
+              <InputField
+                placeholder="-"
+                autoCapitalize="words"
+                style={{
+                  height: 45,
+                }}
+                value={name}
+                onChangeText={setName}
+              />
+              <UserCodeShare
+                userCode={userDetails.userProfile.userCode}
+                onShare={() => setUserCodeShareModalVisible(true)}
+              />
+            </VerticalView>
+          </HorizontalView>
+
+          <Separator />
+
+          <View style={{ flex: 1, width: '100%' }}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12 }}
+            >
+              <HorizontalView style={[settingStyles.horizontalView, { gap: 5 }]}>
+                <ThemedText fontSize={20} fontWeight="Medium">Email:</ThemedText>
+                <InputField 
+                  placeholder="-"
+                  autoCapitalize="none"
+                  keyboard="email"
+                  width={200}
+                  fontSize={16}
+                  value={email}
+                  onChangeText={setEmail}
+                  onKeyboardSubmit={async() => {
+                    if (newEmail !== email) {
+                      setNewEmail(email)
+
+                      if (email !== userDetails.userProfile.email) {
+                        setVerified(false);
+                        setPasswordModalVisible(true);
+                        setIsEmailChanged(true);
+                      }
+                      else {
+                        await checkVerification();
+                      }
+                    }
+                  }}
+                />
+                <ThemedButton 
+                  text={newEmail === email ? (verified ? "Verified" : "Verify") : ''}
+                  icon={newEmail !== email && <ArrowRightFromLine style={{right: 5}} strokeWidth={2.5} />}
+                  isPrimary={!verified || newEmail !== email}
+                  isRound={false}
+                  sizeY={48}
+                  sizeX={70}
+                  fontSize={verified ? 12 : 16}
+                  disablePrimaryGlow={true}
+                  loadingOnPress={!verified}
+                  isDisabled={verified && newEmail === email}
+                  onPress={async() => {
+                    if (newEmail !== email) {
+                      setNewEmail(email);
+
+                      if (email !== userDetails.userProfile.email) {
+                        setVerified(false);
+                        setPasswordModalVisible(true);
+                        setIsEmailChanged(true);
+                      }
+                      else {
+                        await checkVerification();
+                      }
+                    } else if (!verified) {
+                      await sendVerify();
+                      setVerificationModalVisible(true);
+                    }
+                  }}
+                />
+              </HorizontalView>
+
+              <HorizontalView style={settingStyles.horizontalView}>
+                <ThemedText fontSize={20} fontWeight="Medium">Password:</ThemedText>
+                <ThemedButton 
+                  text="Change Password"
+                  isPrimary={false}
+                  sizeY={50}
+                  sizeX={235}
+                  fontSize={16}
+                  onPress={async() => {
+                    await sendChangePassword();
+                    Alert.alert("Password change email sent", "Please check your inbox and follow the instructions to change your password.");
+
+                    updateUserShouldBeLoggedOut(true);
+                    setTimeout(() => {
+                      userDetails._isAfterPasswordChange = true;
+                      router.navigate('/user/user_welcome');
+                    }, 3000);
+                  }}
+                />
+              </HorizontalView>
+
+              <Separator />
+              
+              <HorizontalView style={{paddingHorizontal: 7}}>
+                <ThemedButton
+                  text='Wallet' 
+                  isPrimary={false}
+                  isRound={false}
+                  sizeY={50}
+                  sizeX={'100%'}
+                  icon={<Wallet strokeWidth={2.5} style={{marginLeft: 3}} />}
+                  onPress={() => setWalletModalVisible(true)}
+                />
+              </HorizontalView>
+
+              <Separator />
+
+              <HorizontalView style={settingStyles.horizontalView}>
+                <ThemedText fontSize={20} fontWeight="Medium">Collect anonymous data:</ThemedText>
+                <HorizontalView style={{gap: 5, alignItems: 'center'}}>
+                  <ActionButton 
+                    isPrimary={collectData === true}
+                    isRound={false}
+                    size={44}
+                    icon={<Check strokeWidth={3} />}
+                    onPress={() => setCollectData(true)}
+                  />
+                  <ActionButton 
+                    isPrimary={collectData === false}
+                    isRound={false}
+                    size={44}
+                    icon={<X strokeWidth={2.5} />}
+                    onPress={() => setCollectData(false)}
+                  />
+                </HorizontalView>
+              </HorizontalView>
+              <HorizontalView style={{flex: 1, justifyContent: 'space-around'}}>
+                <ThemedButton 
+                  text='Privacy Policy'
+                  isPrimary={false}
+                  isRound={false}
+                  fontSize={18}
+                  fontWeight='Medium'
+                  sizeX={170}
+                  sizeY={50}
+                />
+                <ThemedButton 
+                  text='Terms of Service'
+                  isPrimary={false}
+                  isRound={false}
+                  fontSize={18}
+                  fontWeight='Medium'
+                  sizeX={170}
+                  sizeY={50}
+                />
+              </HorizontalView>
+
+              <Separator />
+              <View style={{width: '100%', alignItems: 'center'}}>
+                <ThemedButton 
+                  text='Log out'
+                  isPrimary={false}
+                  isRound={false}
+                  fontSize={18}
+                  sizeX={"96%"}
+                  sizeY={50}
+                  icon={<LogOut strokeWidth={2.5} />}
+                  onPress={async () => {
+                    Alert.alert(
+                      "Log out", "Are you sure you want to log out?",
+                      [
+                        {
+                          text: "Cancel",
+                          style: "cancel"
+                        },
+                        {
+                          text: "Log out",
+                          onPress: async () => {
+                            await logout();
+                            router.replace('/user/user_welcome');
+                          }
+                        }
+                      ]
+                    )
+                  }}
+                />
+                <HorizontalView style={{gap: 3.5, marginTop: 14}}>
+                  <ThemedText
+                    fontSize={14}
+                    fontWeight="Regular"
+                  >If you want to delete your account, you can</ThemedText>
+                  <ThemedText
+                    fontSize={14}
+                    color={Colors.red}
+                    style={{textDecorationLine: 'underline'}}
+                    fontWeight="Regular"
+                    onPress={() => {
+                      Alert.alert("Are you sure?", "This action cannot be undone. Your account will be permanently deleted.", [
+                        {
+                          text: "Cancel",
+                          style: "cancel"
+                        },
+                        {
+                          text: "Delete Account",
+                          style: "destructive",
+                          onPress: () => {
+                            setWantsToDeleteAccount(true);
+                            setPasswordModalVisible(true);
+                          }
+                        }
+                      ])
+                    }}
+                  >click here</ThemedText>
+                </HorizontalView>
+              </View>
+            </ScrollView>
+            <LinearGradient
+              colors={gradientColors}
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                zIndex: 10,
+              }}
+              pointerEvents="none"
+            />
+          </View>
+        </Animated.View>
+      )}      
       <VerifyEmailModal 
         visible={verificationModalVisible}
         onClose={() => setVerificationModalVisible(false)}

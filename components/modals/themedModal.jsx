@@ -11,7 +11,7 @@ const ThemedModal = ({
   onClose,
   height = '50%',
   children,
-  closeButtonPosition = 'right'
+  closeButtonPosition = 'right',
 }) => {
   const screenHeight = Dimensions.get('window').height;
   const animatedHeight = React.useRef(new Animated.Value(0)).current;
@@ -28,9 +28,9 @@ const ThemedModal = ({
 
     Animated.timing(animatedHeight, {
       toValue: targetHeight,
-      duration: 375,
+      duration: 225,
       useNativeDriver: false,
-      easing: Easing.out(Easing.circle),
+      easing: Easing.out(Easing.ease),
     }).start();
   }, [height]);
 
@@ -42,6 +42,7 @@ const ThemedModal = ({
       onRequestClose={onClose}
       hardwareAccelerated={true}
       deviceWidth={'100%'}
+      
     >
       <View style={styles.modalOverlay}>
         <Animated.View style={[styles.modalBox, { height: animatedHeight }]}>

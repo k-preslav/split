@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, Alert } from 'react-native'
+import { View, Text, SafeAreaView, Alert, ActivityIndicator, Animated } from 'react-native';
 import React, { useCallback, useEffect } from 'react'
 import ThemedModal from './themedModal'
 import ThemedText from '../common/themedText'
@@ -19,21 +19,51 @@ const WalletModal = ({ visible, onClose }) => {
   const [modalHeight, setModalHeight] = React.useState();
   const [payoutOptionIndex, setPaymentOptionIndex] = React.useState(0);
 
-  const [walletAmount, setWalletAmount] = React.useState(0);
+  const [walletAmount, setWalletAmount] = React.useState(-1);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
-  
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  const pulseAnim = React.useRef(new Animated.Value(0)).current;
+
+  // Pulse animation logic
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: false,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+
+    return () => {
+      animation?.stop();
+    }
+  }, [payoutOptionIndex, isWalletSetup]);
+
   const fetchWalletAmount = async () => {
     try {
+      setIsLoading(true);
       const amount = await getAccountBalance(userDetails.userProfile?.stripeConnectId);
       
       setWalletAmount(amount || 0);
       console.log('Wallet amount fetched:', amount);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching wallet amount:', error);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {    
+    if (!visible) return;
+
     fetchWalletAmount();
   }, [visible, userDetails.userProfile?.stripeConnectId]);
 
@@ -91,6 +121,12 @@ const WalletModal = ({ visible, onClose }) => {
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
           <ThemedText style={{ paddingLeft: 12, marginBottom: 10 }} fontSize={30} fontWeight='Bold'>
             {isWalletSetup ? 'Your Wallet' : 'Setup Wallet'}
+
+            {isLoading && (
+              <View style={{ paddingLeft: 10, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator color={Colors.textGray}/>
+              </View>
+            )}
           </ThemedText>
           {!isWalletSetup && (
             <ThemedText fontSize={22} style={{ marginLeft: 3 }} color={Colors.textGray}>
@@ -107,11 +143,11 @@ const WalletModal = ({ visible, onClose }) => {
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 7 }}>
                 <ThemedText fontSize={24}>{getSymbolOfCurrency()}</ThemedText>
                 <View style={{ marginLeft: 5, flexDirection: 'row', alignItems: 'baseline', gap: 7 }}>
-                  <ThemedText fontSize={36} fontWeight={'Medium'}>{Number(walletAmount).toFixed(2)}</ThemedText>
-                  {walletAmount < 99 && (
+                  <ThemedText fontSize={36} fontWeight={'Medium'} animate={true}>{walletAmount > -1 ? Number(walletAmount).toFixed(2) : '-.--'}</ThemedText>
+                  {walletAmount < 20 && (
                     <>
-                    <ThemedText fontSize={24} fontWeight={'Light'}>/</ThemedText>
-                    <ThemedText fontSize={24}>20</ThemedText>
+                    <ThemedText fontSize={24} fontWeight={'Light'} animate={true}>{isLoading ? "" : "/"}</ThemedText>
+                    <ThemedText fontSize={24} animate={true}>{isLoading ? "" : "20"}</ThemedText>
                     </>
                   )}
                 </View>
@@ -127,6 +163,7 @@ const WalletModal = ({ visible, onClose }) => {
                     onPress={async() => {
                       if (walletAmount >= 20) {
                         setIsWithdrawing(true);
+                        setIsLoading(true);
 
                         const withdrawRes = await withdrawMoney(walletAmount, userDetails.userProfile.stripeConnectId);
                       
@@ -136,6 +173,7 @@ const WalletModal = ({ visible, onClose }) => {
                         }
 
                         setIsWithdrawing(false);
+                        setIsLoading(false);
                       }
                     }}
                   />
@@ -159,9 +197,9 @@ const WalletModal = ({ visible, onClose }) => {
         ) : isBankAccountConnected ? (
           <View style={{ paddingHorizontal: 12, gap: 16, flex: 1 }}>
             <ThemedText fontSize={20}>How would you like to receive money?</ThemedText>
-            <HorizontalView gap={10} justifyContent='center'>
+            <HorizontalView gap={10} justifyContent="center">
               <ThemedButton
-                text='Stacked'
+                text="Stacked"
                 isPrimary={payoutOptionIndex === 0}
                 extraLightWhenSecondary={true}
                 isRound={false}
@@ -172,7 +210,7 @@ const WalletModal = ({ visible, onClose }) => {
                 onPress={() => setPaymentOptionIndex(0)}
               />
               <ThemedButton
-                text='Instant'
+                text="Instant"
                 isPrimary={payoutOptionIndex === 1}
                 extraLightWhenSecondary={true}
                 isRound={false}
@@ -184,25 +222,29 @@ const WalletModal = ({ visible, onClose }) => {
               />
             </HorizontalView>
 
-            <View
+            {/* Info text with pulse effect */}
+            <Animated.View
               style={{
                 backgroundColor: Colors.lightGray,
                 padding: 10,
                 borderRadius: 15,
-                borderWidth: 1,
-                borderColor: payoutOptionIndex === 0 ? Colors.lighterGray : Colors.primary,
+                borderWidth: 2,
+                borderColor: payoutOptionIndex === 1 ? pulseAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [Colors.lighterGray, Colors.primary],
+                }) : Colors.lighterGray,
               }}
             >
-              <ThemedText fontSize={18}>
+              <ThemedText fontSize={18} animate={true}>
                 {payoutOptionIndex === 0
                   ? 'Stacked payouts are free but only sent after your wallet balance hits BGN 20.'
-                  : 'Instant payouts have no minimum limit but include a processing fee!'}
+                  : 'Instant payouts have no minimum limit but include a withdraw fee paid by you!'}
               </ThemedText>
-            </View>
+            </Animated.View>
 
-            <View style={{ flex: 1, paddingTop: 20, gap: 12 }}>
+            <View style={{ flex: 1, paddingTop: 15, gap: 12 }}>
               <ThemedButton
-                text='Finish setup'
+                text="Finish setup"
                 icon={<ArrowRight strokeWidth={2.2} />}
                 isPrimary={true}
                 extraLightWhenSecondary={true}
@@ -220,7 +262,7 @@ const WalletModal = ({ visible, onClose }) => {
             <ThemedText fontSize={20}>To receive money, please connect your bank account.</ThemedText>
             <View style={{ flex: 1, paddingTop: 12, gap: 12 }}>
               <ThemedButton
-                text='Connect bank account'
+                text="Connect bank account"
                 isPrimary={true}
                 extraLightWhenSecondary={true}
                 isRound={false}

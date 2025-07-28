@@ -76,10 +76,17 @@ export const getGradientColorsSecondary = () => [
 
 
 export const getRandomColor = () => {
-  const getComponent = () => Math.floor(Math.random() * 156) + 100; // 100–255
-  const r = getComponent();
-  const g = getComponent();
-  const b = getComponent();
+  const base = 100; // minimum brightness per channel
+  const max = 255;
+  
+  // Generate a base color with sum of RGB >= 450 (bright)
+  let r, g, b;
+  do {
+    r = Math.floor(Math.random() * (max - base + 1)) + base;
+    g = Math.floor(Math.random() * (max - base + 1)) + base;
+    b = Math.floor(Math.random() * (max - base + 1)) + base;
+  } while (r + g + b < 450); // ensures overall brightness
+
   return `#${[r, g, b]
     .map((c) => c.toString(16).padStart(2, '0'))
     .join('')

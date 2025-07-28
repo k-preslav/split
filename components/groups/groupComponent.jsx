@@ -1,19 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Image, StyleSheet, Button } from 'react-native';
+import { View, Image, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../themes/colors';
 import OrbitingFriendIcon from './orbitingFriendsIcon';
-import NameBar from '../common/nameBar';
-import { useUser } from '../../hooks/useUser';
-import { getUserProfileByCode } from '../../lib/getUser';
-import { userDetails } from '../../lib/userDetails';
-import { getGroupImageUrl } from '../../lib/groupsApi';
 import { Calendar, RefreshCcw } from 'lucide-react-native';
 
-const GroupComponent = ({ group, shouldAnimate, isActive }) => {
+const GroupComponent = ({ group, isActive }) => {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const orbitRef = useRef();
+  const popupAnim = useRef(new Animated.Value(0)).current;
 
   const groupStyles = getGroupStyles(Colors);
+
+  useEffect(() => {
+    Animated.spring(popupAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 20,
+    }).start();
+  }, []);
 
   useEffect(() => {
     if (isActive && orbitRef.current) {
@@ -22,7 +27,18 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
   }, [isActive]);
 
   return (
-    <View style={groupStyles.container}>
+    <Animated.View
+      style={[
+        groupStyles.container,
+        {
+          transform: [
+            {
+              scale: popupAnim,
+            },
+          ],
+        },
+      ]}
+    >
       <View
         style={groupStyles.groupIconContainer}
         onLayout={e => {
@@ -38,29 +54,6 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
           />
         </View>
 
-        {group.isSubscription && (
-          <View style={{
-            position: 'absolute',
-            right: 5,
-            bottom: 5,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: Colors.lightGray,
-            borderRadius: 99,
-            padding: 8,
-            shadowColor: 'black',
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
-          }}>
-            <Calendar
-              strokeWidth={2}
-              color={Colors.textLight}
-              size={18}
-              />
-          </View>
-        )}
-
         <OrbitingFriendIcon
           ref={orbitRef}
           friends={group.membersProfiles || []}
@@ -68,13 +61,11 @@ const GroupComponent = ({ group, shouldAnimate, isActive }) => {
           centerY={layout.height / 2}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
-
 export default GroupComponent;
-
 
 export const getGroupStyles = (Colors) =>
   StyleSheet.create({
@@ -99,6 +90,7 @@ export const getGroupStyles = (Colors) =>
     groupIcon: {
       width: 96,
       height: 96,
+      borderRadius: 99,
     },
   }
 );

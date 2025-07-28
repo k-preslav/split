@@ -23,6 +23,7 @@ import { ID } from 'react-native-appwrite';
 import { uploadUserProfilePic } from '../../../lib/userProfilePic';
 import { selectImage } from '../../../lib/imageSelect';
 import { getRandomColor } from '../../../components/themes/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SetAccountProfilePic = () => {
   const [accountImage, setAccountImage] = useState(null);
@@ -83,15 +84,25 @@ const SetAccountProfilePic = () => {
           />
         </FixedCenterView>
 
-        <FixedBottomView>          
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingBottom: useSafeAreaInsets().bottom,
+        }}>      
           <ThemedButton
             text={accountImage ? 'Next' : 'Skip'}
+            style={{ width: '95%' }}
             icon={<ArrowRight strokeWidth={2.5} />}
             loadingOnPress={true}
             onPress={handleSubmit}
             isPrimary={accountImage !== null}
           />
-        </FixedBottomView>
+        </View>
       </ThemedView>
     </TouchableWithoutFeedback>
   );

@@ -12,6 +12,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { getStyles } from '../themes/styles';
 import { Colors } from '../themes/colors';
+import ThemedText from './themedText';
 
 const ThemedButton = ({
   text = 'Themed button',
@@ -31,6 +32,7 @@ const ThemedButton = ({
   disablePrimaryGlow = false,
   overrideIconSize = null,
   isDisabled = false,
+  animateText = false,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const fontScale = PixelRatio.getFontScale();
@@ -104,6 +106,12 @@ const ThemedButton = ({
             : Colors.buttonSecondary,
         },
         sizeX && sizeY && { width: sizeX, height: sizeY },
+        {
+          minWidth: 80, // Ensures a minimum width
+          minHeight: 40, // Ensures a minimum height
+          paddingHorizontal: 10, // Adds horizontal padding
+          paddingVertical: 5, // Adds vertical padding
+        },
         { borderRadius: isRound ? (sizeX ? sizeX / 2 : 30) : 15 },
         (isPrimary && !disablePrimaryGlow) && {
           shadowColor: Colors.primary,
@@ -152,18 +160,21 @@ const ThemedButton = ({
             transform: [{ scale: iconScaleAnim }],
           }}
         >
-          <Text
+          <ThemedText
             style={[
               styles.buttonText,
               {
                 color: !isDisabled ? (isPrimary ? "#000000" : Colors.textLight) : Colors.textGray,
-                fontSize: fontSize / fontScale,
+                fontSize: Math.min(fontSize / fontScale, sizeY ? sizeY * 0.4 : fontSize), // Adjust font size dynamically
                 fontFamily: `Satoshi-${fontWeight}`,
               },
             ]}
+            numberOfLines={1} // Prevents text wrapping
+            ellipsizeMode="tail" // Adds ellipsis if text overflows
+            animate={animateText}
           >
             {text}
-          </Text>
+          </ThemedText>
           {icon &&
             React.cloneElement(icon, {
               color: isPrimary ? "#000000": Colors.textLight,

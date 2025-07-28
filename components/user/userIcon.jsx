@@ -8,7 +8,7 @@ import ThemedText from '../common/themedText';
 import { selectImage } from '../../lib/imageSelect';
 import { Upload } from 'lucide-react-native';
 
-const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPosition = 'bottom' }) => {
+const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPosition = 'bottom', onLoaded }) => {
   const [showNamebar, setShowNamebar] = useState(true);
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const [userDetails, setUserDetails] = useState(null);
@@ -32,6 +32,7 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
   const getInitials = (fullName) =>
     fullName
       .split(' ')
+      .slice(0, 2)
       .map(word => word[0].toUpperCase())
       .join('');
 
@@ -59,6 +60,7 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
     } finally {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
+      onLoaded?.();
     }
   };
 

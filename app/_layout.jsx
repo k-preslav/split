@@ -39,12 +39,12 @@ export default function Layout() {
       return;
     }
 
-    await fetchUserProfile(userDetails.userProfile.userId);
-    
-    const shouldLogOut = userDetails.userProfile?.shouldBeLoggedOut || false;
-    if (shouldLogOut && !userDetails._isAfterPasswordChange) {
-      router.navigate('/user/user_welcome');
-    }
+    fetchUserProfile(userDetails.userProfile.userId).then(() => {
+      const shouldLogOut = userDetails.userProfile?.shouldBeLoggedOut || false;
+      if (shouldLogOut && !userDetails._isAfterPasswordChange) {
+        router.navigate('/user/user_welcome');
+      }
+    });
   }
 
   useEffect(() => {

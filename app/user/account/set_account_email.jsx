@@ -33,16 +33,26 @@ const SetAccountEmail = () => {
           <InputField keyboard='email' placeholder='john@example.com' value={email} onChangeText={setEmail}/>
         </FixedCenterView>
 
-        <FixedBottomView>          
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingBottom: useSafeAreaInsets().bottom,
+        }}>     
           <ThemedButton
             text='Next'
             icon={<ArrowRight strokeWidth={2.5} />}
+            style={{ width: "95%" }}
             onPress={() => {
               userDetails._email = email;
               router.push('/user/account/set_account_password');
             }}
           />
-        </FixedBottomView>
+        </View>
       </ThemedView>
     </TouchableWithoutFeedback>
   );

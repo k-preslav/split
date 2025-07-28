@@ -105,7 +105,7 @@ const shareCodeStayle = {
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: deviceInfo.platform === 'ios' && deviceInfo.osVersion < 19 ? 23 : 20,
+    paddingBottom: deviceInfo.devicePlatform === 'ios' && deviceInfo.devicePlatformVersion < 19 ? 23 : 20,
     alignItems: 'center',
     justifyContent: 'center',
   }

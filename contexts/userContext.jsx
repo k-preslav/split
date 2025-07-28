@@ -82,7 +82,6 @@ export function UserProvider({ children }) {
             profilePicId: userDetails._profilePicId || null,
             profileImgPlaceholderColor: userDetails._profileImgPlaceholderColor || '',
             userCode: code,
-            preferredCurrency: preferredCurrency || 'USD',
           }
         );
 

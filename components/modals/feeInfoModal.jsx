@@ -47,7 +47,7 @@ const FeeInfoModal = ({originalPaymentAmount, visible, onClose}) => {
           <HorizontalView style={{ gap: 10, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 }}>
             <ThemedText fontSize={23} fontWeight='Medium'>Split fee</ThemedText>
             <HorizontalView style={{ gap: 6, alignItems: 'center' }}>
-              <ThemedText fontSize={23} fontWeight='Regular'>2.5% + BGN 0.15</ThemedText>
+              <ThemedText fontSize={23} fontWeight='Regular'>1.5% + BGN 0.15</ThemedText>
             </HorizontalView>
           </HorizontalView>
 

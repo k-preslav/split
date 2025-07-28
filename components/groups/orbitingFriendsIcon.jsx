@@ -47,7 +47,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
       animationFrameRef.current = null;
     }
 
-    if (deviceInfo.platform === 'android' && deviceInfo.osVersion < 12) {
+    if (deviceInfo.devicePlatform === 'android' && deviceInfo.devicePlatformVersion < 12) {
       const newRotation = getRandomStartRotation();
       const targetRotation = getRandomEndRotation(newRotation);
 
@@ -58,7 +58,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
     isAnimatingRef.current = true;
 
     // Badges animation
-    if (deviceInfo.platform === 'android') {
+    if (deviceInfo.devicePlatform === 'android') {
       badgeScales.forEach(anim => anim.setValue(1));
     } else {
       badgeScales.forEach(anim => anim.setValue(0));

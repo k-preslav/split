@@ -21,12 +21,15 @@ import { createTransfer } from '../../lib/stripeApi'
 import { updateGroup } from '../../lib/groupsApi'
 import VerifyEmailModal from '../modals/verifyEmailModal'
 import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
+import dayjs from 'dayjs'
 
 const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const [panelWidth, setPanelWidth] = useState(0);
+
+  const [buttonAcceptsPress, setButtonAcceptsPress] = useState(true);
 
   const [payModalVisible, setPayModalVisible] = useState(false);
   const [walletModalVisible, setWalletModalVisible] = useState(false);
@@ -62,14 +65,25 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
     }
   }, [group])
 
-  function getNextChargeDate(billingDate) {
-    const now = new Date();
-    const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
-    const chargeDay = new Date(billingDate).getDate();
+  function getNextChargeDate(billingDate, isMonthly) {
+    const now = dayjs();
+    const chargeDay = dayjs(billingDate).date();
 
-    return `Next charge: ${chargeDay}/${nextMonth + 1 < 10 ? '0' : ''}${nextMonth + 1}`;
+    let nextCharge;
+
+    if (isMonthly) {
+      const nextMonth = now.month() === 11 ? 0 : now.month() + 1;
+      const nextYear = now.month() === 11 ? now.year() + 1 : now.year();
+
+      nextCharge = dayjs().year(nextYear).month(nextMonth).date(chargeDay);
+    } else {
+      // Yearly billing — next charge is same month/day, next year
+      nextCharge = dayjs(billingDate).year(now.year() + 1);
+    }
+
+    const format = isMonthly ? 'DD/MM' : 'DD/MM/YYYY';
+    return `Next charge: ${nextCharge.format(format)}`;
   }
-
 
   const handleSetPaid = async() => {
     try {
@@ -123,12 +137,17 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
 
   const handleDropout = async() => {
     try {
+      if ((group.membersProfiles.length - 2) <= 0) {
+        await handleDelete();
+        return;
+      }
+
       await databases.updateDocument(
         process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
         process.env.EXPO_PUBLIC_APPWRITE_GROUPS_COLLECTION_ID,
         group.groupId,
         {
-          splitAmount: calculateShare(group.membersProfiles.length - 2),
+          splitAmount: group.payAmount / (group.membersProfiles.length - 2),
           friendsCodes: group.friendsCodes.filter(code => code !== userDetails.userProfile.userCode),
           paidFriendsCodes: group.paidFriendsCodes.filter(code => code !== userDetails.userProfile.userCode),
         }
@@ -166,7 +185,8 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
     if (!group || !group.payAmount) return 0;
 
     const progress = calculatePaidAmount() / group.payAmount;
-    return Math.min(progress, 1); // Ensure progress does not exceed 100%
+    const progressCeil = Math.ceil(progress * 100) / 100; // Round to 2 decimal places
+    return Math.min(progressCeil, 1); // Ensure progress does not exceed 100%
   }
 
   return (
@@ -326,7 +346,7 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
           }</ThemedText>
           <HorizontalView style={{gap: 8}}>
             <ThemedButton
-              loadingOnPress={getSplitProgress() >= 1}
+              loadingOnPress={getSplitProgress() >= 1 && buttonAcceptsPress}
               style={{ width: group?.isMoneyCollected && isUserOwner ? '79%' : '100%' }} 
               isPrimary={
                 // Owner, and hasn't setup wallet yet → highlight
@@ -357,15 +377,19 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
                                 )
                               : "Waiting for friends"
                           )
-                        : "Setup wallet"
+                        : (verified ? "Setup wallet" : "Verify email")
                     )
                   : (
                       hasUserPaid
-                        ? group?.billingDate ? getNextChargeDate(group?.billingDate) : "Already paid"
+                        ? group?.createdAt ? getNextChargeDate(group?.createdAt, group?.isMonthly) : "Already paid"
                         : (verified ? "Pay split" : "Verify email to pay")
                     )
               }
               onPress={async() => {
+                if (!buttonAcceptsPress) return;
+
+                setButtonAcceptsPress(false);
+
                 if (!verified) {
                   await sendVerify();
                   setVerifyModalVisible(true);
@@ -376,10 +400,12 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
                   if (isWalletSetup) {
                     if (getSplitProgress() >= 1) {
                       await handleCollectMoney();
+
+                      setTimeout(() => {
+                        setButtonAcceptsPress(true);
+                      }, 1000);
                     }
                   } else {
-                    await fetchUserProfile(userDetails.userProfile.userId);
-
                     setWalletModalVisible(true);
                   }
                 } else {

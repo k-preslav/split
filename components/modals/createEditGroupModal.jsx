@@ -1,5 +1,6 @@
-import { View, Text, Alert, Image, Keyboard, ActivityIndicator, ScrollView } from 'react-native'
-import React from 'react'
+import { View, Text, Alert, Image, Keyboard, ActivityIndicator, ScrollView, Dimensions, PixelRatio } from 'react-native'
+import {ReactNativeModal} from 'react-native-modal'
+import React, { useEffect } from 'react'
 import ThemedModal from './themedModal'
 import ActionButton from '../common/actionButton'
 import { Check, ChevronRight, QrCode, Trash2, Upload } from 'lucide-react-native'
@@ -23,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Camera, CameraView, useCameraPermissions } from 'expo-camera'
 import Constants from 'expo-constants';
 import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
+import Animated, { configureReanimatedLogger, useSharedValue, withTiming, useAnimatedStyle, Easing } from 'react-native-reanimated'
 
 const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   const [scrollY, setScrollY] = React.useState(0);
@@ -52,18 +54,111 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
   const [paymentOptionIndex, setPaymentOptionIndex] = React.useState(0)
   const [billingDateOption, setBillingDateOption] = React.useState(0)
-  const [forceHideBillingOptions, setForceHideBillingOptions] = React.useState(false)
-
+  
   const [friendCodeInput, setFriendCodeInput] = React.useState('')
   const [friends, setFriends] = React.useState([])
   const [isAddingFriend, setIsAddingFriend] = React.useState(false)
+  const [forceShowFriendCodeInput, setForceShowFriendCodeInput] = React.useState(false)
 
   const [friendShare, setFriendShare] = React.useState(0.0)
-
+  
   const gradientColors = getGradientColorsSecondary();
-
+  
   const [qrRequested, setQrRequested] = React.useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  
+  const [modalHeight, setModalHeight] = React.useState('94.5%');
+  const [modalHeightNumeric, setModalHeightNumeric] = React.useState(0);
+
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  
+  const [statusBarOffset, setStatusBarOffset] = React.useState(0);
+  const statusBarGradOpacity = useSharedValue(0);
+  const [showStatusBarGradient, setShowStatusBarGradient] = React.useState(false);
+
+  // Add refs for positioning
+  const scrollViewRef = React.useRef(null);
+  const [scrollViewLayout, setScrollViewLayout] = React.useState({
+    top: 0,
+    bottom: 0,
+    width: 0
+  });
+
+  // Function to update scroll view measurements
+  const measureScrollView = () => {
+    if (scrollViewRef.current && visible) {
+      scrollViewRef.current.measureInWindow((x, y, width, height) => {
+        setScrollViewLayout({
+          top: y,
+          bottom: y + height,
+          width: width,
+          left: x
+        });
+      });
+    }
+  };
+
+  // Update measurements when modal becomes visible
+  React.useEffect(() => {
+    if (visible) {
+      // Allow the modal to render first
+      setTimeout(measureScrollView, 100);
+    }
+  }, [visible, modalHeight]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!forceShowFriendCodeInput) {
+      setModalHeight('94.5%');
+      setModalHeightNumeric(Dimensions.get('window').height * 0.945); // numeric equivalent
+      setShowStatusBarGradient(false);
+      return;
+    }
+
+    const windowHeight = Dimensions.get('window').height;
+
+    const friendsListHeight = (friends.length === 0 ? 1 : friends.length) * 90;
+    const needsExtraHeight = paymentOptionIndex === 1;
+    const adjustment = needsExtraHeight ? -keyboardHeight + 50 : -keyboardHeight - 25;
+
+    const totalHeight = windowHeight + keyboardHeight + friendsListHeight + adjustment;
+    const percentHeight = (totalHeight / windowHeight) * 100;
+
+    setModalHeightNumeric(totalHeight);
+    setModalHeight(`${percentHeight.toFixed(0)}%`);
+  }, [forceShowFriendCodeInput, keyboardHeight, friends.length, paymentOptionIndex]);
+
+
+
+  useEffect(() => {
+    if (forceShowFriendCodeInput) {
+      setShowStatusBarGradient(true);
+    }
+
+    const windowHeight = Dimensions.get('window').height;
+    const offsetFromTop = modalHeightNumeric - windowHeight;
+    setStatusBarOffset(offsetFromTop);
+    
+    statusBarGradOpacity.set(0);
+    statusBarGradOpacity.value = withTiming(1, { duration: 500 });
+  }, [modalHeightNumeric]);
+
+  configureReanimatedLogger({
+    strict: false,
+  });
 
   const close = () => {
     setGroupNameTemp('')
@@ -74,7 +169,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
 
     setPaymentOptionIndex(0)
     setBillingDateOption(0)
-    setForceHideBillingOptions(false)
+    setForceShowFriendCodeInput(false)
 
     setFriendCodeInput('')
     setFriends([])
@@ -188,12 +283,6 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       groupImageStorageFile = await uploadGroupImage(groupImage)
     }
 
-    let billingDate = null;
-    if (paymentOptionIndex === 1 && !billingDate) {
-      const billingDate = new Date();
-      billingDate.setDate(billingDate.getDate() - 1);
-    }
-
     await createNewGroup(
       groupName,
       userDetails.userProfile.userId,
@@ -205,230 +294,264 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       parseFloat(calculateTotalPaymentAmount(friendShare)),
       paymentOptionIndex,
       billingDateOption,
-      billingDate
     )
 
     onSubmit?.();
     close();
   }
 
+  const expandedHeight = 80;
+  const collapsedHeight = 0; 
+  const animatedHeight = useSharedValue(collapsedHeight);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: withTiming(animatedHeight.value, {
+      duration: 150,
+      easing: Easing.inOut(Easing.ease), // example easing function
+    }),
+  }));
+
+  // Update height when paymentOptionIndex changes
+  React.useEffect(() => {
+    animatedHeight.value = paymentOptionIndex === 1 ? expandedHeight : collapsedHeight;
+  }, [paymentOptionIndex]);
+
   return (
-    <ThemedModal closeButtonPosition="left" visible={visible} onClose={close} height={'94.5%'}>
-      <View
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-        }}
-      >
-        <ActionButton
-          isPrimary={true}
-          extraLightWhenSecondary={true}
-          icon={<Check strokeWidth={2.5} />}
-          loadingOnPress={true}
-          onPress={async() => await createGroup()}
-        />
-      </View>
+    <>
+      <ThemedModal closeButtonPosition="left" visible={visible} onClose={close} height={modalHeight}>
+        { showStatusBarGradient && visible && (
+          <LinearGradient
+            colors={[gradientColors[0], gradientColors[2]]}
+            opacity={statusBarGradOpacity.get()}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0, y: 0 }}
+            style={{
+              position: 'absolute',
+              top: statusBarOffset,
+              left: 0,
+              right: 0,
+              height: 150,
+              zIndex: 9999,
+            }}
+          />
+        )}
 
-      {/* Group name centered */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 23,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-        }}
-      >
-        <ThemedText fontSize={28} fontWeight={'Medium'}>
-          {groupName}
-        </ThemedText>
-      </View>
-
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          marginTop: 65,
-          gap: 8,
-        }}
-      >
-        <Separator />
-
-        {/* Group image + name input */}
-        <HorizontalView style={{ gap: 20 }}>
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+          }}
+        >
           <ActionButton
-            icon={
-              groupImage ? (
-                <Image
-                  source={{ uri: groupImage }}
-                  style={{
-                    width: 82,
-                    height: 82,
-                    borderRadius: 99,
-                    padding: groupImagePadding,
-                  }}
-                />
-              ) : (
-                <Upload strokeWidth={2.5} />
-              )
-            }
+            isPrimary={true}
             extraLightWhenSecondary={true}
-            size={82}
-            isPrimary={false}
-            isRound={true}
+            icon={<Check strokeWidth={2.5} />}
             loadingOnPress={true}
-            onPress={async () => {
-              const img = await selectImage()
-              if (img) {
-                setGroupImage(img)
-                setGroupImagePadding(0)
-                setGroupImageFile(null);
-              }
-            }}
+            onPress={async() => await createGroup()}
           />
+        </View>
 
-          <InputField
-            style={{
-              width: '60%',
-              height: 60,
-              backgroundColor: Colors.lightGray,
-            }}
-            extraLightBorder={true}
-            placeholder={'Group name'}
-            maxLength={15}
-            value={groupNameTemp}
-            onChangeText={setGroupNameTemp}
-            autoCapitalize={'words'}
-            onBlur={async() => {             
-              setGroupName(groupNameTemp)
-              const matchImage = await tryFindGroupImageByGroupName(groupNameTemp);
-
-              const handleSetImg = () => {
-                setGroupImagePadding(12);
-                setGroupImage(matchImage.uri);
-                setGroupImageFile(matchImage.file);
-              }
-
-              if (matchImage) {
-                if (groupImage && !groupImageFile)
-                {
-                  Alert.alert(
-                    "Group Image Available",
-                    "We've found an image that matches your group name. Would you like to use this image for your group?",
-                    [
-                      {
-                        text: "No, thanks",
-                        style: "cancel",
-                      },
-                      {
-                        text: "Yes, use it",
-                        onPress: () => {
-                          handleSetImg();
-                        },
-                      },
-                    ]
-                  )
-                }
-                else {
-                  handleSetImg();
-                }
-              }
-            }}
-            fontSize={20}
-          />
-        </HorizontalView>
-
-        <Separator />
-
-        {/* Full amount input */}
-        <HorizontalView style={{ gap: 20 }}>
-          <ThemedText fontSize={26} fontWeight={'Medium'}>
-            Full amount:
+        {/* Group name centered */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 23,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+          }}
+        >
+          <ThemedText fontSize={28} fontWeight={'Medium'}>
+            {groupName}
           </ThemedText>
-          <InputField
-            style={{
-              width: '50%',
-              height: 60,
-              backgroundColor: Colors.lightGray,
-            }}
-            extraLightBorder={true}
-            placeholder={`${getSymbolOfPreferredCurrency()} 0.00`}
-            keyboardType="decimal-pad"
-            value={fullAmountTemp}
-            onChangeText={setFullAmoutTemp}
-            onBlur={() => {
-              const input = fullAmountTemp?.replace(',', '.').replace(getSymbolOfPreferredCurrency(), '') || '0.0'
-              const num = parseFloat(input)
-              if (num === 0) {
-                return
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            marginTop: 65,
+            gap: 8,
+          }}
+        >
+          <Separator />
+
+          {/* Group image + name input */}
+          <HorizontalView style={{ gap: 20 }}>
+            <ActionButton
+              icon={
+                groupImage ? (
+                  <Image
+                    source={{ uri: groupImage }}
+                    style={{
+                      width: 82,
+                      height: 82,
+                      borderRadius: 99,
+                      padding: groupImagePadding,
+                    }}
+                  />
+                ) : (
+                  <Upload strokeWidth={2.5} />
+                )
               }
+              extraLightWhenSecondary={true}
+              size={82}
+              isPrimary={false}
+              isRound={true}
+              loadingOnPress={true}
+              onPress={async () => {
+                const img = await selectImage()
+                if (img) {
+                  setGroupImage(img)
+                  setGroupImagePadding(0)
+                  setGroupImageFile(null);
+                }
+              }}
+            />
 
-              const formatted = (Math.ceil(num * 10) / 10).toFixed(2)
+            <InputField
+              style={{
+                width: '60%',
+                height: 60,
+                backgroundColor: Colors.lightGray,
+              }}
+              extraLightBorder={true}
+              placeholder={'Group name'}
+              maxLength={15}
+              value={groupNameTemp}
+              onChangeText={setGroupNameTemp}
+              autoCapitalize={'words'}
+              onBlur={async() => {             
+                setGroupName(groupNameTemp)
+                const matchImage = await tryFindGroupImageByGroupName(groupNameTemp);
 
-              setFullAmout(formatted)
-              setFullAmoutTemp(`${getSymbolOfPreferredCurrency()} ${formatted}`)
+                const handleSetImg = () => {
+                  setGroupImagePadding(12);
+                  setGroupImage(matchImage.uri);
+                  setGroupImageFile(matchImage.file);
+                }
 
-              calculateShare()
-            }}
-            fontSize={20}
-          />
-        </HorizontalView>
+                if (matchImage) {
+                  if (groupImage && !groupImageFile)
+                  {
+                    Alert.alert(
+                      "Group Image Available",
+                      "We've found an image that matches your group name. Would you like to use this image for your group?",
+                      [
+                        {
+                          text: "No, thanks",
+                          style: "cancel",
+                        },
+                        {
+                          text: "Yes, use it",
+                          onPress: () => {
+                            handleSetImg();
+                          },
+                        },
+                      ]
+                    )
+                  }
+                  else {
+                    handleSetImg();
+                  }
+                }
+              }}
+              fontSize={20}
+            />
+          </HorizontalView>
 
-        {/* Payment options */}
-        <HorizontalView style={{ gap: 10, marginTop: 5 }}>
-          <ThemedButton
-            text="One time"
-            isPrimary={paymentOptionIndex === 0}
-            extraLightWhenSecondary={true}
-            isRound={false}
-            sizeX={170}
-            sizeY={70}
-            fontSize={22}
-            fontWeight={paymentOptionIndex === 0 ? 'Bold' : 'Medium'}
-            onPress={() => setPaymentOptionIndex(0)}
-          />
-          <ThemedButton
-            text="Subscription"
-            isPrimary={paymentOptionIndex === 1}
-            extraLightWhenSecondary={true}
-            isRound={false}
-            sizeX={175}
-            sizeY={70}
-            fontSize={21}
-            fontWeight={paymentOptionIndex === 1 ? 'Bold' : 'Medium'}
-            onPress={() => setPaymentOptionIndex(1)}
-          />
-        </HorizontalView>
+          <Separator />
 
-        {(paymentOptionIndex === 1 && !forceHideBillingOptions) && (
+          {/* Full amount input */}
+          <HorizontalView style={{ gap: 20 }}>
+            <ThemedText fontSize={26} fontWeight={'Medium'}>
+              Full amount:
+            </ThemedText>
+            <InputField
+              style={{
+                width: '50%',
+                height: 60,
+                backgroundColor: Colors.lightGray,
+              }}
+              extraLightBorder={true}
+              placeholder={`${getSymbolOfPreferredCurrency()} 0.00`}
+              keyboardType="decimal-pad"
+              value={fullAmountTemp}
+              onChangeText={setFullAmoutTemp}
+              onBlur={() => {
+                const input = fullAmountTemp?.replace(',', '.').replace(getSymbolOfPreferredCurrency(), '') || '0.0'
+                const num = parseFloat(input)
+                if (num === 0) {
+                  return
+                }
+
+                const formatted = (Math.ceil(num * 10) / 10).toFixed(2)
+
+                setFullAmout(formatted)
+                setFullAmoutTemp(`${getSymbolOfPreferredCurrency()} ${formatted}`)
+
+                calculateShare()
+              }}
+              fontSize={20}
+            />
+          </HorizontalView>
+
+          {/* Payment options */}
           <HorizontalView style={{ gap: 10, marginTop: 5 }}>
             <ThemedButton
-              text="Every month"
-              isPrimary={billingDateOption === 0}
+              text="One time"
+              isPrimary={paymentOptionIndex === 0}
               extraLightWhenSecondary={true}
               isRound={false}
               sizeX={170}
               sizeY={70}
-              fontSize={20}
-              fontWeight={billingDateOption === 0 ? 'Bold' : 'Medium'}
-              onPress={() => setBillingDateOption(0)}
+              fontSize={22}
+              fontWeight={paymentOptionIndex === 0 ? 'Bold' : 'Medium'}
+              onPress={() => setPaymentOptionIndex(0)}
             />
             <ThemedButton
-              text="Every year"
-              isPrimary={billingDateOption === 1}
+              text="Subscription"
+              isPrimary={paymentOptionIndex === 1}
               extraLightWhenSecondary={true}
               isRound={false}
               sizeX={175}
               sizeY={70}
               fontSize={21}
-              fontWeight={billingDateOption === 1 ? 'Bold' : 'Medium'}
-              onPress={() => setBillingDateOption(1)}
+              fontWeight={paymentOptionIndex === 1 ? 'Bold' : 'Medium'}
+              onPress={() => setPaymentOptionIndex(1)}
             />
           </HorizontalView>
-        )}
 
-        <Separator />
+          {/* Animated container for "Every month" and "Every year" buttons */}
+          <Animated.View style={[animatedStyle, { marginTop: 5 }]}>
+            <HorizontalView style={{ gap: 10 }}>
+              <ThemedButton
+                text="Every month"
+                isPrimary={billingDateOption === 0}
+                extraLightWhenSecondary={true}
+                isRound={false}
+                sizeX={170}
+                sizeY={70}
+                fontSize={20}
+                fontWeight={billingDateOption === 0 ? 'Bold' : 'Medium'}
+                onPress={() => setBillingDateOption(0)}
+              />
+              <ThemedButton
+                text="Every year"
+                isPrimary={billingDateOption === 1}
+                extraLightWhenSecondary={true}
+                isRound={false}
+                sizeX={175}
+                sizeY={70}
+                fontSize={21}
+                fontWeight={billingDateOption === 1 ? 'Bold' : 'Medium'}
+                onPress={() => setBillingDateOption(1)}
+              />
+            </HorizontalView>
+          </Animated.View>
+
+          <Separator />
 
       {/* Friends input */}
       <HorizontalView style={{ gap: 20, marginBottom: 5, paddingHorizontal: 10 }}>
@@ -450,20 +573,25 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           value={friendCodeInput}
           onChangeText={setFriendCodeInput}
           onBlur={() => {
-            if (friendCodeInput?.length > 0) {
-              addFriend(friendCodeInput);
-              calculateShare();
+            // Don't add friend if there's no input
+            if (!friendCodeInput?.length) {
+              setForceShowFriendCodeInput(false);
+              return;
             }
-
-            setFriendCodeInput('')
-            if (paymentOptionIndex === 1) {
-              setForceHideBillingOptions(false);
-            }
+            
+            // Only process on blur when not coming from button press
+            setTimeout(() => {
+              // Check if friendCodeInput has been cleared (which would indicate the button handler ran)
+              if (friendCodeInput && friendCodeInput.length > 0) {
+                addFriend(friendCodeInput);
+                setFriendCodeInput('');
+              }
+            
+              setForceShowFriendCodeInput(false);
+            }, 100);
           }}
           onFocus={() => {
-            if (paymentOptionIndex === 1) {
-              setForceHideBillingOptions(true);
-            }
+            setForceShowFriendCodeInput(true);
           }}
           />
         <ActionButton
@@ -480,8 +608,9 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           onPress={async () => {
             Keyboard.dismiss()
             if (friendCodeInput?.length > 0) {
-              await addFriend(friendCodeInput)
-              setFriendCodeInput('')
+              const codeToAdd = friendCodeInput;
+              setFriendCodeInput(''); // Clear immediately to prevent double addition
+              await addFriend(codeToAdd);
             } else {
               await openQrScanner();
             }
@@ -490,8 +619,11 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       </HorizontalView>
 
       {/* Scrollable friend list */}
-      <View style={{ flex: 1, paddingHorizontal: 5, width:'100%', backgroundColor: Colors.backgroundSecondary
-      }}>
+      <View 
+        style={{ flex: 1, paddingHorizontal: 5, width:'100%', backgroundColor: Colors.backgroundSecondary }}
+        ref={scrollViewRef}
+        onLayout={measureScrollView}
+      >
         <ScrollView
           contentContainerStyle={{ paddingBottom: 16 }}
           style={{ backgroundColor: Colors.backgroundSecondary }}
@@ -613,21 +745,9 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             </View>
           )}
         </ScrollView>
+        
+        {/* Gradients moved inside the modal but positioned absolutely within the scrollview container */}
         {colorScheme === 'dark' && (
-          <>
-          <BlurView
-            intensity={scrollGradientOpacity * 7}
-            tint= 'dark'
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 65,
-              zIndex: 10,
-            }}
-            pointerEvents="none"
-          />
           <LinearGradient
             colors={gradientColors}
             start={{ x: 0, y: 1 }}
@@ -637,61 +757,30 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               top: 0,
               left: 0,
               right: 0,
-              height: 60,
-              zIndex: 10,
+              height: 65,
               opacity: scrollGradientOpacity,
+              pointerEvents: 'none',
             }}
-            pointerEvents="none"
           />
-          </>
         )}
+        
         <LinearGradient
           colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
           style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
             height: 40,
-            zIndex: 10,
-          }}
-          pointerEvents="none"
-        />
-      </View>
-      
-      </View>
-
-      {/* Footer info */}
-      <View
-        style={{
-          padding: 10,
-          alignItems: 'center',
-        }}
-      >
-      </View>
-      
-      {/* {Constants.executionEnvironment !== "storeClient" && qrRequested && (
-        <CameraView
-          style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1000,
-          }}
-          active={qrRequested && cameraPermission?.granted}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr'],
-          }}
-          onBarcodeScanned={({ data }) => {
-            setScannedData(data);
-            console.log("QR Code scanned:", data);
+            pointerEvents: 'none',
           }}
         />
-      )} */}
+      </View>
+      </View>
     </ThemedModal>
+    </>
   )
 }
 

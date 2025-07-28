@@ -39,6 +39,7 @@ const SetAccountPassword = () => {
     await logout();
 
     const exists = await doesUserExistByEmail(userDetails._email);
+    console.log("User email:", userDetails._email);
     console.log("User exists:", exists);
 
     userDetails._isNewProfile = !exists;
@@ -127,8 +128,17 @@ const SetAccountPassword = () => {
           >Forgot password?</ThemedText>
         </FixedCenterView>
 
-        <FixedBottomView>
-          <HorizontalView style={{gap: 10, width: '85%', paddingRight: 20,}}>
+        <View style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingBottom: useSafeAreaInsets().bottom,
+        }}>
+          <HorizontalView style={{gap: 10}}>
             <ActionButton 
               size={65}
               icon={<StepBack strokeWidth={2.5} />}
@@ -140,6 +150,7 @@ const SetAccountPassword = () => {
               text='Next'
               icon={<ArrowRight strokeWidth={2.5} />}
               loadingOnPress={true}
+              style={{ width: "75%" }}
               onPress={async () => {
                 userDetails._password = password;
                 userDetails._isAfterPasswordChange = false;
@@ -147,7 +158,7 @@ const SetAccountPassword = () => {
               }}
             />
           </HorizontalView>
-        </FixedBottomView>
+        </View>
       </ThemedView>
     </TouchableWithoutFeedback>
   );

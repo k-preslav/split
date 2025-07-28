@@ -19,6 +19,7 @@ import ShareUserCodeModal from '../../../components/modals/shareUserCodeModal';
 import { deviceInfo } from '../../../global/deviceInfo';
 import ThemedButton from '../../../components/common/themedButton';
 import UserCodeShare from '../../../components/user/userCodeShare';
+import { fetchUserProfile } from '../../../lib/getUser';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
@@ -29,19 +30,19 @@ const GetAccountCode = () => {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
-  const [confettiCount, setConfettiCount] = React.useState(200);
+  const [confettiCount, setConfettiCount] = React.useState(100);
 
   useEffect(() => {
-    if (deviceInfo.platform === 'android') {
-      const ver = parseFloat(deviceInfo.osVersion);
+    if (deviceInfo.devicePlatform === 'android') {
+      const ver = parseFloat(deviceInfo.devicePlatformVersion);
       if (ver == 10) {
-        setConfettiCount(100);
-      }
-      if (ver < 10) {
         setConfettiCount(50);
       }
+      if (ver < 10) {
+        setConfettiCount(25);
+      }
       if (ver <= 8) {
-        setConfettiCount(10);
+        setConfettiCount(7);
       }
     }
   }, [])
@@ -60,15 +61,32 @@ const GetAccountCode = () => {
           <UserCodeShare userCode={userCode} onShare={async() => setShareModalVisible(true)}/>
       </FixedCenterView>
 
-      <FixedBottomView>        
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingBottom: useSafeAreaInsets().bottom,
+      }}>
         <ThemedButton
           text='Got it!'
           loadingOnPress={true}
-          onPress={() => {
-            router.navigate('/')
+          style={{width: '95%'}}
+          onPress={async () => {
+            await fetchUserProfile(userDetails.userProfile.userId);
+            router.navigate('/groups/groupsView');
           }}
-        />
-      </FixedBottomView>
+        />        
+      </View>
+
+      <ShareUserCodeModal 
+        userCode={userCode} 
+        visible={shareModalVisible} 
+        onClose={() => setShareModalVisible(false)}
+      />
 
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
         <ConfettiCannon
@@ -78,15 +96,9 @@ const GetAccountCode = () => {
           explosionSpeed={200}
           fallSpeed={2000}
           autoStart={true}
-          autoStartDelay={400}
+          autoStartDelay={100}
         />
       </View>
-
-      <ShareUserCodeModal 
-        userCode={userCode} 
-        visible={shareModalVisible} 
-        onClose={() => setShareModalVisible(false)}
-      />
     </ThemedView>
   );
 };

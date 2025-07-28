@@ -1,4 +1,4 @@
-import { FlatList, View, Dimensions, ActivityIndicator } from 'react-native';
+import { FlatList, View, Dimensions, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import React, { useCallback, useEffect, useState, useRef, useMemo, act } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useUser } from '../../hooks/useUser';
@@ -10,7 +10,7 @@ import HorizontalView from '../../components/views/horizontalView';
 import ThemedButton from '../../components/common/themedButton';
 import FixedTopView from '../../components/views/fixedTopView';
 import FixedCenterView from '../../components/views/fixedCenterView';
-import { Bolt, Check, Clock, Crown, Plus, Settings, Settings2, User, User2, UserCog } from 'lucide-react-native';
+import { Bolt, Calendar, CalendarSync, Check, Clock, Crown, Plus, Settings, Settings2, User, User2, UserCog } from 'lucide-react-native';
 import AnchorView from '../../components/views/anchorView';
 import UserCode from '../../components/user/userCode';
 import UserCodeShare from '../../components/user/userCodeShare';
@@ -27,6 +27,9 @@ import GroupActionsPanel from '../../components/groups/groupActionsPanel';
 import { client } from '../../lib/appwrite';
 import { useIsFocused } from '@react-navigation/native';
 import PaymentModal from '../../components/modals/paymentModal';
+import { LinearGradient } from 'expo-linear-gradient';
+import ReactNativeModal from 'react-native-modal';
+import { Portal, PortalProvider } from '@gorhom/portal';
 
 const { width } = Dimensions.get('window');
 
@@ -38,14 +41,17 @@ const Groups = () => {
   const [isFetchingGroups, setIsFetchingGroups] = useState(true);
   const [showLoadingText, setShowLoadingText] = useState(false);
   const [userHasNoGroups, setUserHasNoGroups] = useState(false);
-  
+  const [showTopCreateGroupButton, setShowTopCreateGroupButton] = useState(false);
+
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
-  const [justCreatedGroup, setJustCreatedGroup] = useState(false);
+  const justCreatedGroupRef = useRef(false);
   
   const flatListRef = useRef(null);
   const previousScrollPosition = useRef(0);
 
   const liveUpdateSubRef = useRef(null);
+
+  const slideAnim = useRef(new Animated.Value(300)).current;
 
   const enrichGroup = async (group) => {
     const membersProfiles = await Promise.all(
@@ -77,8 +83,9 @@ const Groups = () => {
       groupImageUrl,
       payAmount: group.payAmount || 0,
       splitAmount: group.splitAmount || 0,
-      billingDate: new Date(group.billingDate) || null,
       isSubscription: group.paymentOptionIndex === 1,
+      isMonthly: group.billingOptionIndex === 0,
+      createdAt: new Date(group.$createdAt) || null,
     };
   };
 
@@ -89,7 +96,7 @@ const Groups = () => {
 
     setIsFetchingGroups(true);
     setUserHasNoGroups(false);
-    const loadingTextTimeout = setTimeout(() => setShowLoadingText(true), 500);
+    const loadingTextTimeout = setTimeout(() => setShowLoadingText(true), 1000);
 
     try {
       let baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
@@ -114,8 +121,8 @@ const Groups = () => {
       setGroups(enrichedGroups);
       setUserHasNoGroups(false);
 
-      if (justCreatedGroup) {
-        setJustCreatedGroup(false);
+      if (justCreatedGroupRef.current) {
+        justCreatedGroupRef.current = false;
 
         const lastOwnedIndex = enrichedGroups
           .map((group, idx) => ({ ...group, idx }))
@@ -126,14 +133,16 @@ const Groups = () => {
         const targetIndex = lastOwnedIndex ?? 0;
 
         setTimeout(() => {
+          console.log('Scrolling to index:', targetIndex);
           try {
             flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
+            setActiveGroupIndex(targetIndex);
           } catch (error) {
+            console.warn('Failed scrolling to index:', error);
             flatListRef.current?.scrollToIndex({ index: 0, animated: true });
             setActiveGroupIndex(0);
-            console.warn('Failed scrolling to index:', error);
           }
-        }, 250);
+        }, 0);
       }
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -153,6 +162,9 @@ const Groups = () => {
     if (!isFocused) return;
 
     setGesturesEnabled(false);
+    setActiveGroupIndex(0);
+
+    setShowTopCreateGroupButton(false);
 
     fetchGroups();
 
@@ -176,11 +188,21 @@ const Groups = () => {
     const unsubscribe = client.subscribe(
       `databases.${db}.collections.${coll}.documents`,
       async (res) => {
-        setShowLoadingText(true);
-
         const payload = res?.payload;
         if (!payload || !payload.$id) {
           console.warn('Received malformed Appwrite realtime payload:', res);
+          return;
+        }
+
+        // Membership check
+        const userCode = userDetails?.userProfile?.userCode;
+        const userId = userDetails?.userProfile?.userId;
+        const isMember =
+          payload.ownerId === userId ||
+          (Array.isArray(payload.friendsCodes) && payload.friendsCodes.includes(userCode));
+
+        if (!isMember) {
+          // User is not a member of this group, ignore update
           return;
         }
 
@@ -189,26 +211,28 @@ const Groups = () => {
         if (!groupId) return;
 
         let updatedGroupIndex = groups.indexOf(groups.find(group => group.groupId === groupId))
+        console.log('Updated group index:', updatedGroupIndex, "Active:", activeGroupIndex);
         
         if (res.events.includes('databases.*.collections.*.documents.*.delete')) {
           updatedGroupIndex -= 1;
         }
 
-        setGroups([]);
         await fetchGroups().then(() => {
-          setShowLoadingText(false);
-
           if (updatedGroupIndex > -1) {
             setTimeout(() => {
+              const idx = updatedGroupIndex === activeGroupIndex ? activeGroupIndex : updatedGroupIndex;
+
               try {
-                flatListRef.current?.scrollToIndex({ index: updatedGroupIndex, animated: true });
+                flatListRef.current?.scrollToIndex({ index: idx, animated: true });
               } catch (error) {
                 flatListRef.current?.scrollToIndex({ index: 0, animated: true });
                 setActiveGroupIndex(0);
                 console.warn('Failed scrolling to index:', error);
               }
-            }, 250);
+            }, 350);
           }
+          
+          setShowLoadingText(false);
         });
       }
     );
@@ -254,9 +278,26 @@ const Groups = () => {
     }
   };
 
+  useEffect(() => {
+    if (groups.length > 0) {
+      slideAnim.setValue(300);
+
+      setTimeout(() => setShowTopCreateGroupButton(true), 100);
+
+      setTimeout(() => {
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.out(Easing.exp),
+          useNativeDriver: true,
+        }).start();
+      }, 100);
+    }
+  }, [groups.length > 0]);
+
   return (
     <ThemedView>
-      <FixedTopView style={{marginTop: 5}}>
+      <FixedTopView style={{ marginTop: 5 }}>
         <View
           style={{
             width: '100%',
@@ -268,32 +309,44 @@ const Groups = () => {
         >
           <AnchorView>
             <HorizontalView>
-              <UserCode fontSize={20} userCode={userDetails?.userProfile?.userCode || "------"}/>
+              <UserCode fontSize={20} userCode={userDetails?.userProfile?.userCode || "------"} />
             </HorizontalView>
           </AnchorView>
 
           <AnchorView>
             <HorizontalView style={{ gap: 5 }}>
-              {groups.length > 0 && (
-                <ThemedButton
-                  text="Create group"
-                  icon={<Plus strokeWidth={2.5} />}
-                  isRound={false}
-                  isPrimary={false}
-                  sizeX={145}
-                  sizeY={44}
-                  fontSize={15}
-                  onPress={() => setCreateEditGroupModalVisible(true)}
-                />
+              {groups.length > 0 && showTopCreateGroupButton && (
+                <Animated.View
+                  style={{
+                    transform: [{ translateX: slideAnim }],
+                    opacity: slideAnim.interpolate({
+                      inputRange: [0, 50],
+                      outputRange: [1, 0],
+                      extrapolate: 'clamp'
+                    })
+                  }}
+                >
+                  <ThemedButton
+                    text="Create group"
+                    icon={<Plus strokeWidth={2.5} />}
+                    isRound={false}
+                    isPrimary={false}
+                    sizeX={145}
+                    sizeY={44}
+                    fontSize={15}
+                    onPress={() => setCreateEditGroupModalVisible(true)}
+                  />
+                </Animated.View>
               )}
 
-              <ActionButton 
+              <ActionButton
                 icon={<User2 strokeWidth={2.5} />}
                 size={44}
                 isPrimary={false}
                 isRound={false}
-                onPress={async() => {
+                onPress={async () => {
                   router.push('/user/account/accountSettingsView');
+                  setTimeout(() => setGroups([]), 350);
                 }}
               />
             </HorizontalView>
@@ -381,30 +434,37 @@ const Groups = () => {
                 fontSize={18}
                 name={groups[activeGroupIndex]?.groupName || '-'}
                 icon={
-                  <View
-                    style={[
-                      friendIconStyles.badge,
-                      {
-                        backgroundColor: 
-                          (isUserOwner()  || hasUserPaid())
-                          ? Colors.primary
-                          : Colors.lightGray,
-                        shadowColor:
-                          (isUserOwner()  || hasUserPaid())
-                          ? Colors.primary
-                          : 'black',
-                        transform: [{
-                          scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
-                        }],
-                      },
-                    ]}
-                  >
-                    {isUserOwner() ? (
-                      <Crown width={18} strokeWidth={2.5} />
-                    ) : hasUserPaid() ? (
-                      <Check width={18} strokeWidth={3} />
-                    ) : (
-                      <Clock width={18} strokeWidth={2.25} color={Colors.light} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5 }}>
+                    <View
+                      style={[
+                        friendIconStyles.badge,
+                        {
+                          backgroundColor: 
+                            (isUserOwner()  || hasUserPaid())
+                            ? Colors.primary
+                            : Colors.lightGray,
+                          shadowColor:
+                            (isUserOwner()  || hasUserPaid())
+                            ? Colors.primary
+                            : 'black',
+                          transform: [{
+                            scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
+                          }],
+                        },
+                      ]}
+                    >
+                      {isUserOwner() ? (
+                        <Crown width={18} strokeWidth={2.5} />
+                      ) : hasUserPaid() ? (
+                        <Check width={18} strokeWidth={3} />
+                      ) : (
+                        <Clock width={18} strokeWidth={2.25} color={Colors.light} />
+                      )}
+                    </View>
+                    {groups[activeGroupIndex]?.isSubscription && (
+                      <View style={friendIconStyles.badge}>
+                        <Calendar width={18} color={Colors.light} strokeWidth={2.2}/>
+                      </View>
                     )}
                   </View>
                 }
@@ -418,23 +478,26 @@ const Groups = () => {
               </>
             )}
           </FixedBottomView>
+
+          {/* GroupActionsPanel at the bottom */}
+          {groups.length > 0 && (
+            <FixedBottomView style={{ height: '28%' }}>
+              <GroupActionsPanel
+                group={groups[activeGroupIndex]}
+                isUserOwner={isUserOwner()}
+                hasUserPaid={hasUserPaid()}
+                onClose={() => setCreateEditGroupModalVisible(false)}
+              />
+            </FixedBottomView>
+          )}
         </>
       )}
 
-      {!userHasNoGroups && (
-        <FixedBottomView style={{ height: '28%' }}>
-          <GroupActionsPanel 
-            group={groups[activeGroupIndex]}
-            hasUserPaid={hasUserPaid()}
-            isUserOwner={isUserOwner()}
-          />
-        </FixedBottomView>
-      )}
-
-      <CreateEditGroupModal 
-        visible={createEditGroupModalVisible} 
+      {/* Create/Edit Group Modal */}
+      <CreateEditGroupModal
+        visible={createEditGroupModalVisible}
         onSubmit={async () => {
-          setJustCreatedGroup(true);
+          justCreatedGroupRef.current = true;
           await fetchGroups();
         }}
         onClose={() => setCreateEditGroupModalVisible(false)}

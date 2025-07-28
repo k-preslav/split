@@ -42,6 +42,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
     setShowPayButtonSuccess(false);
     setCardDetails(null);
     setPaymentMethodIndex(0);
+    setFeeInfoModalVisible(false);
   }
 
   const fetchPaymentSecret = async (customerId) => {
@@ -100,6 +101,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
       console.log('confirmPayment error:', confirmError);
     } else {
       setShowPayButtonSuccess(true);
+      setFeeInfoModalVisible(false);
       setTimeout(() => {
         onSuccess?.();
         close();
@@ -135,7 +137,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
             onPress={() => setPaymentMethodIndex(0)}
           />
           <ThemedButton
-            text={deviceInfo.platform === 'ios' ? 'Apple Pay' : 'Google Pay'}
+            text={deviceInfo.devicePlatform === 'ios' ? 'Apple Pay' : 'Google Pay'}
             isPrimary={paymentMethodIndex !== 0}
             extraLightWhenSecondary={true}
             isRound={false}
@@ -144,7 +146,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
             fontSize={20}
             fontWeight={paymentMethodIndex !== 0 ? 'Bold' : 'Medium'}
             onPress={() => {
-              const isApplePay = deviceInfo.platform === 'ios';
+              const isApplePay = deviceInfo.devicePlatform === 'ios';
               setPaymentMethodIndex(isApplePay ? 1 : 2);
             }}
           />
@@ -209,12 +211,14 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
           onPress={handlePayment}
         />
       </FixedBottomView>
-
-      <FeeInfoModal 
-        originalPaymentAmount={originalPaymentAmount}
-        visible={feeInfoModalVisible}
-        onClose={() => setFeeInfoModalVisible(false)}
-      />
+      
+      {isVisible && (
+        <FeeInfoModal 
+          originalPaymentAmount={originalPaymentAmount}
+          visible={feeInfoModalVisible}
+          onClose={() => setFeeInfoModalVisible(false)}
+        />
+      )}
     </ThemedModal>
   );
 };
