@@ -20,15 +20,16 @@ import { fetchUserProfile } from '../../lib/getUser'
 import { createTransfer } from '../../lib/stripeApi'
 import { updateGroup } from '../../lib/groupsApi'
 import VerifyEmailModal from '../modals/verifyEmailModal'
-import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
 import dayjs from 'dayjs'
+import { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import Animated, { Easing as ReanimatedEasing } from 'react-native-reanimated';
+import { convertToUserCurrency } from '../../lib/currencyConvert'
 
-const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
+const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const [panelWidth, setPanelWidth] = useState(0);
-
   const [buttonAcceptsPress, setButtonAcceptsPress] = useState(true);
 
   const [payModalVisible, setPayModalVisible] = useState(false);
@@ -39,7 +40,36 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [verified, setVerified] = React.useState(false);
 
+  const [splitAmount, setSplitAmount] = useState(0);
+  const calcSplitAmount = async () => {
+    const amount = group?.splitAmount || 0;
+    const convertedAmount = await convertToUserCurrency(amount);
+    
+    setSplitAmount(convertedAmount.toFixed(2));
+  }
+  useEffect(() => {
+    calcSplitAmount();
+  }, [group?.splitAmount]);
+
   const styles = getStyles();
+
+  // Slide-up animation shared value
+  const translateY = useSharedValue(300);
+
+  const slideUpAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  // Trigger the slide-up animation when the component is mounted
+  useEffect(() => {
+    translateY.value = withTiming(
+      0,
+      {
+        duration: 750,
+        easing: Easing.inOut(Easing.circle),
+      }
+    );
+  }, []);
 
   const refreshUserProfile = async () => {
     await fetchUserProfile(userDetails.userProfile.userId);
@@ -190,8 +220,12 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
   }
 
   return (
-    <View 
-      style={[styles.panel, { bottom: -insets.bottom / 2.35 }]}
+    <Animated.View
+      style={[
+        styles.panel,
+        { bottom: -insets.bottom / 2.35 },
+        slideUpAnimatedStyle, // Add the animated style here
+      ]}
       onLayout={(event) => {
         const { width } = event.nativeEvent.layout;
         setPanelWidth(width);
@@ -199,7 +233,7 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
     >
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', bottom: 5 }}>
-          <ActivityIndicator color={Colors.textLight}/>
+          <ActivityIndicator color={Colors.textLight} />
         </View>
       ) : (
         <>
@@ -220,7 +254,7 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
           {getSplitProgress() < 1 ? (
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'nowrap', gap: 2 }}>
             <ThemedText fontSize={24} fontWeight="Regular">
-              {getSymbolOfPreferredCurrency()}
+              {getSymbolOfPreferredCurrency(group?.groupCurrency)}
             </ThemedText>
 
             <ThemedText
@@ -353,16 +387,18 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
                 (isUserOwner && !isWalletSetup) ||
 
                 // Owner, split is complete, and money is NOT collected → highlight
-                (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected) ||
+                (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected && buttonAcceptsPress) ||
 
                 // Not owner and hasn't paid yet → highlight
-                (!isUserOwner && !hasUserPaid)
+                (!isUserOwner && !hasUserPaid && buttonAcceptsPress)
               }
               extraLightWhenSecondary={true}
+              animateBackground={!buttonAcceptsPress}
               isDisabled={
                 (isUserOwner && group?.isMoneyCollected) ||
                 (isUserOwner && isWalletSetup && getSplitProgress() < 1) ||
-                (!isUserOwner && hasUserPaid)
+                (!isUserOwner && hasUserPaid) ||
+                !buttonAcceptsPress
               }
               text={
                 isUserOwner
@@ -427,10 +463,10 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
         </>
       )}
 
-      <WalletModal 
+      <WalletModal
         visible={walletModalVisible}
         onClose={() => {
-          setWalletModalVisible(false)
+          setWalletModalVisible(false);
           refreshUserProfile();
         }}
       />
@@ -442,11 +478,11 @@ const GroupActionsPanel = ({group, hasUserPaid, isUserOwner}) => {
         onSuccess={handleSetPaid}
       />
 
-      <VerifyEmailModal 
+      <VerifyEmailModal
         visible={verifyModalVisible}
         onClose={() => setVerifyModalVisible(false)}
       />
-    </View>
+    </Animated.View>
   );
 };
 

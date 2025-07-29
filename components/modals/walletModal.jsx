@@ -7,11 +7,12 @@ import { Colors } from '../themes/colors'
 import ThemedButton from '../common/themedButton'
 import { ArrowRight, Bolt, Landmark } from 'lucide-react-native'
 import HorizontalView from '../views/horizontalView'
-import { getSymbolOfPreferredCurrency as getSymbolOfCurrency } from '../../lib/getCurrencyFromLocale'
+import { getSymbolOfPreferredCurrency as getSymbolOfCurrency, getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 import Separator from '../special/separator'
 import { updateUserWalletSettings } from '../../lib/updateUser'
 import { userDetails } from '../../lib/userDetails'
 import { connectToStripe, getAccountBalance, withdrawMoney } from '../../lib/stripeApi'
+import { convertToUserCurrency } from '../../lib/currencyConvert';
 
 const WalletModal = ({ visible, onClose }) => {
   const [isWalletSetup, setIsWalletSetup] = React.useState(false);
@@ -24,6 +25,16 @@ const WalletModal = ({ visible, onClose }) => {
   const [isLoading, setIsLoading] = React.useState(true);
 
   const pulseAnim = React.useRef(new Animated.Value(0)).current;
+
+  const [withdrawMinAmount, setWithdrawMinAmount] = React.useState(20);
+  useEffect(() => {
+    const calcWithdrawMinAmount = async () => {
+      const amount = await convertToUserCurrency(withdrawMinAmount);
+      setWithdrawMinAmount(amount.toFixed(2));
+    }
+
+    calcWithdrawMinAmount();
+  }, [])
 
   // Pulse animation logic
   useEffect(() => {
@@ -144,24 +155,24 @@ const WalletModal = ({ visible, onClose }) => {
                 <ThemedText fontSize={24}>{getSymbolOfCurrency()}</ThemedText>
                 <View style={{ marginLeft: 5, flexDirection: 'row', alignItems: 'baseline', gap: 7 }}>
                   <ThemedText fontSize={36} fontWeight={'Medium'} animate={true}>{walletAmount > -1 ? Number(walletAmount).toFixed(2) : '-.--'}</ThemedText>
-                  {walletAmount < 20 && (
+                  {walletAmount < withdrawMinAmount && (
                     <>
                     <ThemedText fontSize={24} fontWeight={'Light'} animate={true}>{isLoading ? "" : "/"}</ThemedText>
-                    <ThemedText fontSize={24} animate={true}>{isLoading ? "" : "20"}</ThemedText>
+                    <ThemedText fontSize={24} animate={true}>{isLoading ? "" : withdrawMinAmount}</ThemedText>
                     </>
                   )}
                 </View>
                 <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', top: -5}}>
                   <ThemedButton
                     text='Withdraw'
-                    isPrimary={walletAmount >= 20 && !isWithdrawing}
-                    isDisabled={walletAmount < 20 || isWithdrawing}
+                    isPrimary={walletAmount >= withdrawMinAmount && !isWithdrawing}
+                    isDisabled={walletAmount < withdrawMinAmount || isWithdrawing}
                     isRound={false}
                     extraLightWhenSecondary={true}
                     fontSize={18}
-                    style={{ height: 50, width: 'auto', paddingHorizontal: 16 }}
+                    style={{ height: 50, width: 120, paddingHorizontal: 16 }}
                     onPress={async() => {
-                      if (walletAmount >= 20) {
+                      if (walletAmount >= withdrawMinAmount) {
                         setIsWithdrawing(true);
                         setIsLoading(true);
 
@@ -237,7 +248,7 @@ const WalletModal = ({ visible, onClose }) => {
             >
               <ThemedText fontSize={18} animate={true}>
                 {payoutOptionIndex === 0
-                  ? 'Stacked payouts are free but only sent after your wallet balance hits BGN 20.'
+                  ? `Stacked payouts are free but only sent after your wallet balance hits ${getSymbolOfPreferredCurrency()} ${withdrawMinAmount}.`
                   : 'Instant payouts have no minimum limit but include a withdraw fee paid by you!'}
               </ThemedText>
             </Animated.View>

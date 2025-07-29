@@ -131,6 +131,7 @@ const UserIcon = ({ user, enableSelectImage = false, onImageSelected, nameBarPos
               <Image
                 source={{ uri: profileImageUrl }}
                 style={friendIconStyles.profileImage}
+                resizeMode='contain'
               />
               {enableSelectImage && (
                 <View style={friendIconStyles.uploadOverlay}>
@@ -167,8 +168,7 @@ export default UserIcon;
 
 const getFriendIconStyles = () => ({
   container: {
-    width: '100%',
-    height: '100%',
+    aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

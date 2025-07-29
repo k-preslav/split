@@ -146,6 +146,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
   useEffect(() => {
     if (forceShowFriendCodeInput) {
       setShowStatusBarGradient(true);
+      statusBarGradOpacity.value = withTiming(0, { duration: 300 });
     }
 
     const windowHeight = Dimensions.get('window').height;
@@ -153,7 +154,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
     setStatusBarOffset(offsetFromTop);
     
     statusBarGradOpacity.set(0);
-    statusBarGradOpacity.value = withTiming(1, { duration: 500 });
+    statusBarGradOpacity.value = withTiming(1, { duration: 250 });
   }, [modalHeightNumeric]);
 
   configureReanimatedLogger({
@@ -311,7 +312,6 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
     }),
   }));
 
-  // Update height when paymentOptionIndex changes
   React.useEffect(() => {
     animatedHeight.value = paymentOptionIndex === 1 ? expandedHeight : collapsedHeight;
   }, [paymentOptionIndex]);
@@ -321,7 +321,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
       <ThemedModal closeButtonPosition="left" visible={visible} onClose={close} height={modalHeight}>
         { showStatusBarGradient && visible && (
           <LinearGradient
-            colors={[gradientColors[0], gradientColors[2]]}
+            colors={gradientColors}
             opacity={statusBarGradOpacity.get()}
             start={{ x: 0, y: 1 }}
             end={{ x: 0, y: 0 }}
@@ -501,6 +501,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           <HorizontalView style={{ gap: 10, marginTop: 5 }}>
             <ThemedButton
               text="One time"
+              animateBackground={false}
               isPrimary={paymentOptionIndex === 0}
               extraLightWhenSecondary={true}
               isRound={false}
@@ -512,6 +513,7 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
             />
             <ThemedButton
               text="Subscription"
+              animateBackground={false}
               isPrimary={paymentOptionIndex === 1}
               extraLightWhenSecondary={true}
               isRound={false}
@@ -524,10 +526,12 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
           </HorizontalView>
 
           {/* Animated container for "Every month" and "Every year" buttons */}
-          <Animated.View style={[animatedStyle, { marginTop: 5 }]}>
+          <Animated.View style={[animatedStyle, { marginTop: 5, overflow: 'hidden' }]}>
             <HorizontalView style={{ gap: 10 }}>
               <ThemedButton
                 text="Every month"
+                animateBackground={false}
+                disablePrimaryGlow={true}
                 isPrimary={billingDateOption === 0}
                 extraLightWhenSecondary={true}
                 isRound={false}
@@ -539,6 +543,8 @@ const CreateEditGroupModal = ({ visible, onSubmit, onClose }) => {
               />
               <ThemedButton
                 text="Every year"
+                disablePrimaryGlow={true}
+                animateBackground={false}
                 isPrimary={billingDateOption === 1}
                 extraLightWhenSecondary={true}
                 isRound={false}

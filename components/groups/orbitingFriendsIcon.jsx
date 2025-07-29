@@ -171,6 +171,7 @@ const OrbitingFriendIcon = forwardRef(({ friends = [], centerX = 80, centerY = 8
                   borderRadius: 99,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  zIndex: 100,
                 }}
               >
                 {friend.owner ? (

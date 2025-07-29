@@ -1,57 +1,61 @@
-import { FlatList, View, Dimensions, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
-import React, { useCallback, useEffect, useState, useRef, useMemo, act } from 'react';
-import { router, useFocusEffect } from 'expo-router';
-import { useUser } from '../../hooks/useUser';
-import { getGroupImageUrl, getGroupsByOwnerId, getMemberGroupsByUserCode } from '../../lib/groupsApi';
-import ThemedView from '../../components/views/themedView';
-import GroupComponent from '../../components/groups/groupComponent';
-import ActionButton from '../../components/common/actionButton';
-import HorizontalView from '../../components/views/horizontalView';
-import ThemedButton from '../../components/common/themedButton';
-import FixedTopView from '../../components/views/fixedTopView';
-import FixedCenterView from '../../components/views/fixedCenterView';
-import { Bolt, Calendar, CalendarSync, Check, Clock, Crown, Plus, Settings, Settings2, User, User2, UserCog } from 'lucide-react-native';
-import AnchorView from '../../components/views/anchorView';
-import UserCode from '../../components/user/userCode';
-import UserCodeShare from '../../components/user/userCodeShare';
-import FixedBottomView from '../../components/views/fixedBottomView';
-import GroupPageIndicator from '../../components/groups/groupPageIndicator';
-import NameBar from '../../components/common/nameBar';
-import { userDetails } from '../../lib/userDetails';
-import CreateEditGroupModal from '../../components/modals/createEditGroupModal';
-import ThemedText from '../../components/common/themedText';
-import { Colors } from '../../components/themes/colors';
-import { getUserProfileByCode, getUserProfileById } from '../../lib/getUser';
-import { friendIconStyles } from '../../components/groups/orbitingFriendsIcon';
-import GroupActionsPanel from '../../components/groups/groupActionsPanel';
-import { client } from '../../lib/appwrite';
-import { useIsFocused } from '@react-navigation/native';
-import PaymentModal from '../../components/modals/paymentModal';
-import { LinearGradient } from 'expo-linear-gradient';
-import ReactNativeModal from 'react-native-modal';
-import { Portal, PortalProvider } from '@gorhom/portal';
+import { FlatList, View, Dimensions, ActivityIndicator, Animated, Easing, Modal } from 'react-native'
+import React, { useCallback, useEffect, useState, useRef, useMemo, act } from 'react'
+import { router, useFocusEffect } from 'expo-router'
+import { useUser } from '../../hooks/useUser'
+import { getGroupImageUrl, getGroupsByOwnerId, getMemberGroupsByUserCode } from '../../lib/groupsApi'
+import ThemedView from '../../components/views/themedView'
+import GroupComponent from '../../components/groups/groupComponent'
+import ActionButton from '../../components/common/actionButton'
+import HorizontalView from '../../components/views/horizontalView'
+import ThemedButton from '../../components/common/themedButton'
+import FixedTopView from '../../components/views/fixedTopView'
+import FixedCenterView from '../../components/views/fixedCenterView'
+import { Bolt, Calendar, CalendarSync, Check, Clock, Crown, Plus, Settings, Settings2, User, User2, UserCog } from 'lucide-react-native'
+import AnchorView from '../../components/views/anchorView'
+import UserCode from '../../components/user/userCode'
+import UserCodeShare from '../../components/user/userCodeShare'
+import FixedBottomView from '../../components/views/fixedBottomView'
+import GroupPageIndicator from '../../components/groups/groupPageIndicator'
+import NameBar from '../../components/common/nameBar'
+import { userDetails } from '../../lib/userDetails'
+import CreateEditGroupModal from '../../components/modals/createEditGroupModal'
+import ThemedText from '../../components/common/themedText'
+import { Colors } from '../../components/themes/colors'
+import { getUserProfileByCode, getUserProfileById } from '../../lib/getUser'
+import { friendIconStyles } from '../../components/groups/orbitingFriendsIcon'
+import GroupActionsPanel from '../../components/groups/groupActionsPanel'
+import { client } from '../../lib/appwrite'
+import { useIsFocused } from '@react-navigation/native'
+import PaymentModal from '../../components/modals/paymentModal'
+import { LinearGradient } from 'expo-linear-gradient'
+import ReactNativeModal from 'react-native-modal'
+import { Portal, PortalProvider } from '@gorhom/portal'
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get('window')
 
 const Groups = () => {
-  const { setGesturesEnabled, logout } = useUser();
-  const [groups, setGroups] = useState([]);
-  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const { setGesturesEnabled, logout } = useUser()
+  const [groups, setGroups] = useState([])
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0)
 
-  const [isFetchingGroups, setIsFetchingGroups] = useState(true);
-  const [showLoadingText, setShowLoadingText] = useState(false);
-  const [userHasNoGroups, setUserHasNoGroups] = useState(false);
-  const [showTopCreateGroupButton, setShowTopCreateGroupButton] = useState(false);
+  const [isFetchingGroups, setIsFetchingGroups] = useState(true)
+  const [showLoadingText, setShowLoadingText] = useState(false)
+  const [userHasNoGroups, setUserHasNoGroups] = useState(false)
+  const [showTopCreateGroupButton, setShowTopCreateGroupButton] = useState(false)
 
-  const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false);
-  const justCreatedGroupRef = useRef(false);
+  const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false)
+  const justCreatedGroupRef = useRef(false)
   
-  const flatListRef = useRef(null);
-  const previousScrollPosition = useRef(0);
+  const flatListRef = useRef(null)
+  const previousScrollPosition = useRef(0)
 
-  const liveUpdateSubRef = useRef(null);
+  const liveUpdateSubRef = useRef(null)
 
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const slideLeftAnim = useRef(new Animated.Value(300)).current;
+
+  // No groups pop up animation
+  const noGroupsScale = useRef(new Animated.Value(0.7)).current;
+  const noGroupsOpacity = useRef(new Animated.Value(0)).current;
 
   const enrichGroup = async (group) => {
     const membersProfiles = await Promise.all(
@@ -86,6 +90,7 @@ const Groups = () => {
       isSubscription: group.paymentOptionIndex === 1,
       isMonthly: group.billingOptionIndex === 0,
       createdAt: new Date(group.$createdAt) || null,
+      groupCurrency: group.groupCurrency || 'EUR',
     };
   };
 
@@ -280,12 +285,12 @@ const Groups = () => {
 
   useEffect(() => {
     if (groups.length > 0) {
-      slideAnim.setValue(300);
+      slideLeftAnim.setValue(300);
 
       setTimeout(() => setShowTopCreateGroupButton(true), 100);
 
       setTimeout(() => {
-        Animated.timing(slideAnim, {
+        Animated.timing(slideLeftAnim, {
           toValue: 0,
           duration: 700,
           easing: Easing.out(Easing.exp),
@@ -294,6 +299,30 @@ const Groups = () => {
       }, 100);
     }
   }, [groups.length > 0]);
+
+  useEffect(() => {
+    if (userHasNoGroups) {
+      noGroupsScale.setValue(0.7);
+      noGroupsOpacity.setValue(0);
+      
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(noGroupsScale, {
+            toValue: 1,
+            duration: 400,
+            easing: Easing.out(Easing.circle),
+            useNativeDriver: true,
+          }),
+          Animated.timing(noGroupsOpacity, {
+            toValue: 1,
+            duration: 500,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }, 100);
+    }
+  }, [userHasNoGroups]);
 
   return (
     <ThemedView>
@@ -318,8 +347,8 @@ const Groups = () => {
               {groups.length > 0 && showTopCreateGroupButton && (
                 <Animated.View
                   style={{
-                    transform: [{ translateX: slideAnim }],
-                    opacity: slideAnim.interpolate({
+                    transform: [{ translateX: slideLeftAnim }],
+                    opacity: slideLeftAnim.interpolate({
                       inputRange: [0, 50],
                       outputRange: [1, 0],
                       extrapolate: 'clamp'
@@ -368,12 +397,14 @@ const Groups = () => {
           </ThemedText>
         </View>
       ) : userHasNoGroups ? (
-        <View
+        <Animated.View
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
             gap: 8,
+            opacity: noGroupsOpacity,
+            transform: [{ scale: noGroupsScale }],
           }}
         >
           <ThemedText fontSize={38} fontWeight="Bold">
@@ -390,7 +421,7 @@ const Groups = () => {
             style={{ marginTop: 30 }}
             onPress={() => setCreateEditGroupModalVisible(true)}
           />
-        </View>
+        </Animated.View>
       ) : (
         <>
           <FlatList
