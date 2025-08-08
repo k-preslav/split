@@ -7,9 +7,25 @@ import HorizontalView from '../views/horizontalView'
 import VerticalView from '../views/verticalView'
 import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale'
 import { Colors } from '../themes/colors'
-import { calculateTotalPaymentAmount } from '../../lib/paymentFee'
+import { calculateSplitAppFee, calculateStripeFee } from '../../lib/paymentFee'
+import { convertToUserCurrency } from '../../lib/currencyConvert'
 
-const FeeInfoModal = ({originalPaymentAmount, visible, onClose}) => {
+const FeeInfoModal = ({originalPaymentAmount, totalPaymentAmount, visible, onClose}) => {
+  const [stripeFee, setStripeFlatFee] = React.useState(0);
+  const [splitAppFlatFee, setSplitAppFlatFee] = React.useState(0);
+
+  React.useEffect(() => {
+    const calculateFees = async () => {
+      const stripeFlatFee = await convertToUserCurrency(0.50);
+      const splitAppFlatFee = await convertToUserCurrency(0.15);
+
+      setStripeFlatFee(stripeFlatFee);
+      setSplitAppFlatFee(splitAppFlatFee);
+    };
+
+    calculateFees();
+  }, []);
+
   return (
     <ThemedModal visible={visible} onClose={onClose} height='48%'>
       <View style={{
@@ -40,14 +56,14 @@ const FeeInfoModal = ({originalPaymentAmount, visible, onClose}) => {
           <HorizontalView style={{ gap: 10, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 }}>
             <ThemedText fontSize={23} fontWeight='Medium'>Payment fee</ThemedText>
             <HorizontalView style={{ gap: 6, alignItems: 'center' }}>
-            <ThemedText fontSize={23} fontWeight='Regular'>1.5% + BGN 0.50</ThemedText>
+            <ThemedText fontSize={23} fontWeight='Regular'>{`1.5% + ${getSymbolOfPreferredCurrency()} ${stripeFee?.toFixed(2) || 0}`}</ThemedText>
             </HorizontalView>
           </HorizontalView>
 
           <HorizontalView style={{ gap: 10, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 }}>
             <ThemedText fontSize={23} fontWeight='Medium'>Split fee</ThemedText>
             <HorizontalView style={{ gap: 6, alignItems: 'center' }}>
-              <ThemedText fontSize={23} fontWeight='Regular'>1.5% + BGN 0.15</ThemedText>
+              <ThemedText fontSize={23} fontWeight='Regular'>{`1.5% + ${getSymbolOfPreferredCurrency()} ${splitAppFlatFee?.toFixed(2) || 0}`}</ThemedText>
             </HorizontalView>
           </HorizontalView>
 
@@ -57,7 +73,7 @@ const FeeInfoModal = ({originalPaymentAmount, visible, onClose}) => {
             <ThemedText fontSize={28} fontWeight='Medium'>Total</ThemedText>
             <HorizontalView style={{ gap: 6, alignItems: 'center' }}>
               <ThemedText fontSize={28} fontWeight='Medium'>{getSymbolOfPreferredCurrency()}</ThemedText>
-              <ThemedText fontSize={28} fontWeight='Medium'>{calculateTotalPaymentAmount(originalPaymentAmount).toFixed(2) || 0}</ThemedText>
+              <ThemedText fontSize={28} fontWeight='Medium'>{totalPaymentAmount?.toFixed(2) || 0}</ThemedText>
             </HorizontalView>
           </HorizontalView>
         </View>

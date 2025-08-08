@@ -5,7 +5,12 @@ import { Colors } from '../themes/colors'
 
 const GroupPageIndicator = ({pagesCount, activePage}) => {
   return (
-    <HorizontalView>
+    <View style={{
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 2,
+    }}>
       {Array.from({ length: pagesCount }, (_, index) => (
         <View
           key={index}
@@ -19,7 +24,7 @@ const GroupPageIndicator = ({pagesCount, activePage}) => {
           }}
         />
       ))}
-    </HorizontalView>
+    </View>
   )
 }
 

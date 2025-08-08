@@ -12,14 +12,21 @@ import { deviceInfo, getDeviceInfo } from '../global/deviceInfo'
 import { getUserProfilePicImg, getUserProfilePicUrl } from '../lib/userProfilePic'
 import { getCurrencyFromLocale } from '../lib/getCurrencyFromLocale'
 import { fetchUserProfile } from '../lib/getUser'
-import { setColorScheme } from '../components/themes/colors'
-import { createDataCollection, endUserSession, sessionStart, startUserSession, updateAppStartupDuration, updateAppVersionInfo, updateDeviceInfo, updateUiThemeInfo, updateUserLoginTime } from '../lib/dataCollection'
+import { Colors, setColorScheme } from '../components/themes/colors'
+import { createDataCollection, endUserSession, sessionStart, startUserSession, updateAppStartupDuration, updateAppVersionInfo, updateDeviceInfo, updateUiThemeInfo, updateUserLocale, updateUserLoginTime } from '../lib/dataCollection'
 import { userDetails } from '../lib/userDetails'
 import { isAppLaunchTracked, markAppLaunchTracked, unmarkAppLaunchTracked } from '../lib/appLaunch'
+import { Animated } from 'react-native';
+import { Easing } from 'react-native-reanimated'
+import { initCurrencyConverter } from '../lib/currencyConvert'
 
 const Index = () => {
   const { setGesturesEnabled } = useUser();
   const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  const splashScale = React.useRef(new Animated.Value(0)).current;
+  const tiltRotation = React.useRef(new Animated.Value(0)).current;
+  const loadingOpacity = React.useRef(new Animated.Value(0)).current;
 
   const appStartTimestamp = Date.now();
   let startupDurationMs = 0;
@@ -30,6 +37,13 @@ const Index = () => {
   useEffect(() => {
     if (scheme) setColorScheme(scheme);
   }, [scheme]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      const converterKey = process.env.EXPO_PUBLIC_CURRENCY_CONVERTER_API_KEY;
+      initCurrencyConverter(converterKey);
+    }, 200);
+  }, []);
 
   useEffect(() => {
     if (sessionStart) {
@@ -74,10 +88,9 @@ const Index = () => {
         const profile = await fetchUserProfile(user.$id);
 
         // router.navigate('/subscriptionPlayground');
-        // return;
 
         if (profile) {
-          router.navigate('/groups/groupsView');
+          navigateAfterSplashTime('/groups/groupsView');
 
           // Get the app startup duration
           if (!isAppLaunchTracked()) {
@@ -100,6 +113,7 @@ const Index = () => {
             setTimeout(async() => {
               if (!isAppLaunchTracked()) {
                 await updateDeviceInfo();
+                await updateUserLocale();
                 await updateUserLoginTime();
                 await updateAppStartupDuration(startupDurationMs);
                 await updateAppVersionInfo();
@@ -112,12 +126,23 @@ const Index = () => {
 
         }
         else {
-          router.navigate('/user/user_welcome');
-        } 
+          navigateAfterSplashTime('/user/user_welcome');
+        }
       }
     } catch (err) {
-      router.navigate('/user/user_welcome');
+      navigateAfterSplashTime('/user/user_welcome');
     }
+  }
+
+  const navigateAfterSplashTime = (navTo) => {
+      const homeScreenDoneTimestamp = Date.now();
+      const homeScreenDuration = homeScreenDoneTimestamp - appStartTimestamp;
+      const remainingTime = 650 - (homeScreenDuration % 650);
+      setTimeout(() => {
+        if (remainingTime > 0) {
+          router.navigate(navTo);
+        }
+      }, remainingTime);
   }
 
   useEffect(() => {
@@ -143,9 +168,69 @@ const Index = () => {
     }
   }, [fontsLoaded]);
 
+  const startAnimation = () => {
+    splashScale.setValue(0);
+    tiltRotation.setValue(0);
+    loadingOpacity.setValue(0);
+
+    Animated.parallel([
+      Animated.spring(splashScale, {
+        toValue: 1,
+        friction: 6,
+        tension: 45,
+        useNativeDriver: true,
+      }),
+      Animated.timing(tiltRotation, {
+        toValue: 0.08,
+        duration: 400,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    setTimeout(() => {
+      Animated.timing(loadingOpacity, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }, 800);
+  }
+
+  useEffect(() => {
+    startAnimation();
+  }, [])
+
   return (
     <ThemedView>
-      <ActivityIndicator size='small' color='white'></ActivityIndicator>
+      {/* <ActivityIndicator size='small' color='white'></ActivityIndicator> */}
+      <Animated.Image
+        source={require('../assets/splash-icon.png')}
+        style={[{ transform: [
+          { scale: splashScale },
+          { rotate: tiltRotation.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0rad', '1rad']
+          })}
+        ] },
+        {
+          width: 169,
+          height: 169,
+        }]}
+      />
+
+      <Animated.View style={{
+        position: 'absolute',
+        bottom: 140,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: loadingOpacity
+      }}>
+        <ActivityIndicator size='small' color={Colors.light} />
+      </Animated.View>
     </ThemedView>
   )
 }

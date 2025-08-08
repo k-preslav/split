@@ -38,10 +38,14 @@ const Groups = () => {
   const [groups, setGroups] = useState([])
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
 
+  const [isFirstFetch, setIsFirstFetch] = useState(true)
   const [isFetchingGroups, setIsFetchingGroups] = useState(true)
   const [showLoadingText, setShowLoadingText] = useState(false)
   const [userHasNoGroups, setUserHasNoGroups] = useState(false)
   const [showTopCreateGroupButton, setShowTopCreateGroupButton] = useState(false)
+
+  // Add animated value for loading text
+  const loadingTextOpacity = useRef(new Animated.Value(0)).current;
 
   const [createEditGroupModalVisible, setCreateEditGroupModalVisible] = useState(false)
   const justCreatedGroupRef = useRef(false)
@@ -101,7 +105,17 @@ const Groups = () => {
 
     setIsFetchingGroups(true);
     setUserHasNoGroups(false);
-    const loadingTextTimeout = setTimeout(() => setShowLoadingText(true), 1000);
+    
+    // Replace setTimeout with animated fade-in
+    const loadingTextTimeout = setTimeout(() => {
+      setShowLoadingText(true);
+      Animated.timing(loadingTextOpacity, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start();
+    }, 1000);
 
     try {
       let baseGroups = await getGroupsByOwnerId(userDetails.userProfile.userId);
@@ -152,12 +166,20 @@ const Groups = () => {
     } catch (err) {
       console.error('Error fetching groups:', err);
     } finally {
+      // Add fade-out animation when hiding loading text
+      Animated.timing(loadingTextOpacity, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowLoadingText(false);
+      });
+
       setIsFetchingGroups(false);
-      setShowLoadingText(false);
-
       clearTimeout(loadingTextTimeout);
-      setShowLoadingText(false);
 
+      setIsFirstFetch(false);
       fetchLock.current = false;
     }
   };
@@ -324,6 +346,41 @@ const Groups = () => {
     }
   }, [userHasNoGroups]);
 
+  const nameBarTranslateY = useRef(new Animated.Value(350)).current;
+  const nameBarOpacity = useRef(new Animated.Value(0)).current;
+
+  const [canShowNamebar, setCanShowNamebar] = useState(false);
+
+  useEffect(() => {
+    setCanShowNamebar(true);
+    nameBarTranslateY.setValue(350);
+    nameBarOpacity.setValue(0);
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(nameBarOpacity, {
+          toValue: 1,
+          duration: 480,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(nameBarTranslateY, {
+          toValue: 0,
+          duration: 450,
+          easing: Easing.out(Easing.back(0.5)),
+          useNativeDriver: true,
+        })
+      ]).start();
+    }, 150);
+  }, [groups.length > 0]);
+  useEffect(() => {
+    if (isFetchingGroups && isFirstFetch) {
+      setCanShowNamebar(false);
+      nameBarTranslateY.setValue(350);
+      nameBarOpacity.setValue(0);
+    }
+  }, [isFetchingGroups])
+
   return (
     <ThemedView>
       <FixedTopView style={{ marginTop: 5 }}>
@@ -384,18 +441,19 @@ const Groups = () => {
       </FixedTopView>
               
       {(showLoadingText) ? (
-        <View
+        <Animated.View
           style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
+            opacity: loadingTextOpacity,
           }}
         >
           <ActivityIndicator size="small" color={Colors.light}/>
           <ThemedText fontSize={16} color={Colors.textGray} style={{ marginTop: 10 }}>
             Getting groups...
           </ThemedText>
-        </View>
+        </Animated.View>
       ) : userHasNoGroups ? (
         <Animated.View
           style={{
@@ -459,53 +517,58 @@ const Groups = () => {
           />
 
           <FixedBottomView style={{ position: 'absolute', bottom: '35%' }}>
-            {groups.length > 0 && (
+            {groups.length > 0 && canShowNamebar && (
               <>
-              <NameBar
-                fontSize={18}
-                name={groups[activeGroupIndex]?.groupName || '-'}
-                icon={
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5 }}>
-                    <View
-                      style={[
-                        friendIconStyles.badge,
-                        {
-                          backgroundColor: 
-                            (isUserOwner()  || hasUserPaid())
-                            ? Colors.primary
-                            : Colors.lightGray,
-                          shadowColor:
-                            (isUserOwner()  || hasUserPaid())
-                            ? Colors.primary
-                            : 'black',
-                          transform: [{
-                            scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
-                          }],
-                        },
-                      ]}
-                    >
-                      {isUserOwner() ? (
-                        <Crown width={18} strokeWidth={2.5} />
-                      ) : hasUserPaid() ? (
-                        <Check width={18} strokeWidth={3} />
-                      ) : (
-                        <Clock width={18} strokeWidth={2.25} color={Colors.light} />
-                      )}
-                    </View>
-                    {groups[activeGroupIndex]?.isSubscription && (
-                      <View style={friendIconStyles.badge}>
-                        <Calendar width={18} color={Colors.light} strokeWidth={2.2}/>
+                <Animated.View style={{
+                  transform: [{ translateY: nameBarTranslateY }],
+                  opacity: nameBarOpacity,
+                }}>
+                  <NameBar
+                    fontSize={18}
+                    name={groups[activeGroupIndex]?.groupName || '-'}
+                    icon={
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5 }}>
+                        <View
+                          style={[
+                            friendIconStyles.badge,
+                            {
+                              backgroundColor: 
+                                (isUserOwner()  || hasUserPaid())
+                                ? Colors.primary
+                                : Colors.lightGray,
+                              shadowColor:
+                                (isUserOwner()  || hasUserPaid())
+                                ? Colors.primary
+                                : 'black',
+                              transform: [{
+                                scale: (isUserOwner() || hasUserPaid()) ? 0.85 : 1
+                              }],
+                            },
+                          ]}
+                        >
+                          {isUserOwner() ? (
+                            <Crown width={18} strokeWidth={2.5} />
+                          ) : hasUserPaid() ? (
+                            <Check width={18} strokeWidth={3} />
+                          ) : (
+                            <Clock width={18} strokeWidth={2.25} color={Colors.light} />
+                          )}
+                        </View>
+                        {groups[activeGroupIndex]?.isSubscription && (
+                          <View style={friendIconStyles.badge}>
+                            <Calendar width={18} color={Colors.light} strokeWidth={2.2}/>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                }
-              />
-              {groups.length > 1 && (
-                <GroupPageIndicator
-                  pagesCount={groups.length}
-                  activePage={activeGroupIndex}
-                />
-              )}
+                    }
+                  />
+                  {groups.length > 1 && (
+                    <GroupPageIndicator
+                      pagesCount={groups.length}
+                      activePage={activeGroupIndex}
+                    />
+                  )}
+                </Animated.View>
               </>
             )}
           </FixedBottomView>

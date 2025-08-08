@@ -11,7 +11,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 
 // This component is now a child of UserProvider, so it can use the hook.
 function RootLayoutNav() {
-  const { areGesturesEnabled } = useUser();
+  const { areGesturesEnabled, doPushAnimation } = useUser();
 
   return (
     <>
@@ -20,9 +20,8 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           gestureEnabled: areGesturesEnabled,
-          animation: 'slide_from_right',
-          animationTypeForReplace: 'push',
-          animationDuration: 400,
+          animation: doPushAnimation ? "simple_push" : 'fade_from_bottom',
+          animationDuration: doPushAnimation ? 400 : 185,
           contentStyle: { backgroundColor: Colors.background },
         }}
       />

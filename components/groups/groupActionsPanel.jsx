@@ -21,8 +21,7 @@ import { createTransfer } from '../../lib/stripeApi'
 import { updateGroup } from '../../lib/groupsApi'
 import VerifyEmailModal from '../modals/verifyEmailModal'
 import dayjs from 'dayjs'
-import { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
-import Animated, { Easing as ReanimatedEasing } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated'
 import { convertToUserCurrency } from '../../lib/currencyConvert'
 
 const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
@@ -40,7 +39,6 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [verified, setVerified] = React.useState(false);
 
-  const [splitAmount, setSplitAmount] = useState(0);
   const calcSplitAmount = async () => {
     const amount = group?.splitAmount || 0;
     const convertedAmount = await convertToUserCurrency(amount);
@@ -62,13 +60,14 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
 
   // Trigger the slide-up animation when the component is mounted
   useEffect(() => {
-    translateY.value = withTiming(
-      0,
-      {
-        duration: 750,
-        easing: Easing.inOut(Easing.circle),
-      }
-    );
+    translateY.value = 300;
+    
+    setTimeout(() => {
+      translateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.back(1.5))
+      });
+    }, 100);
   }, []);
 
   const refreshUserProfile = async () => {
@@ -111,25 +110,42 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
       nextCharge = dayjs(billingDate).year(now.year() + 1);
     }
 
-    const format = isMonthly ? 'DD/MM' : 'DD/MM/YYYY';
+    // For monthly charges, just show day and month; for yearly show the year too
+    const format = isMonthly ? 'D MMM' : 'D MMM YYYY';
     return `Next charge: ${nextCharge.format(format)}`;
   }
 
   const handleSetPaid = async() => {
     try {
+      const updatedPaidFriendsCodes = [
+        ...group.paidFriendsCodes,
+        userDetails.userProfile.userCode
+      ];
+
+      const allFriendsPaid = updatedPaidFriendsCodes.length === group.membersProfiles.length - 1;
+      const updateData = {
+        paidFriendsCodes: updatedPaidFriendsCodes
+      };
+      
+      if (allFriendsPaid) {
+        updateData.allFriendsPaidDate = new Date().toISOString();
+      }
+
       await databases.updateDocument(
         process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
         process.env.EXPO_PUBLIC_APPWRITE_GROUPS_COLLECTION_ID,
         group.groupId,
-        {
-          paidFriendsCodes: [
-            ...group.paidFriendsCodes,
-            userDetails.userProfile.userCode
-          ],
-        }
+        updateData
       )
 
+      setTimeout(() => {
+        setButtonAcceptsPress(true);
+      }, 1000);
+
       console.log('Added user code to paid friends codes.');
+      if (allFriendsPaid) {
+        console.log('All friends have paid, added allFriendsPaidDate.');
+      }
     } catch (error) {
       console.error('Error updating group with paid friend code:', error, error.code);
     }
@@ -146,6 +162,18 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
     }
     if (group.paidFriendsCodes.length !== group.membersProfiles.length - 1) {
       console.warn('Not all friends have paid, cannot collect money.');
+      Alert.alert(
+        "Cannot collect money",
+        "Not all friends have paid their share."
+      );
+      return;
+    }
+    if (!canCollectMoney()) {
+      console.warn('Cannot collect money yet, waiting period not over.');
+      Alert.alert(
+        "Waiting period in progress",
+        `Money will be available ${getCollectDateString().toLowerCase()}.`
+      );
       return;
     }
 
@@ -217,6 +245,46 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
     const progress = calculatePaidAmount() / group.payAmount;
     const progressCeil = Math.ceil(progress * 100) / 100; // Round to 2 decimal places
     return Math.min(progressCeil, 1); // Ensure progress does not exceed 100%
+  }
+
+  // Function to check if the 7-day waiting period has passed
+  const canCollectMoney = () => {
+    // If all friends have paid (check via split progress) but no allFriendsPaidDate is set,
+    // we should still enforce the waiting period
+    if (getSplitProgress() >= 1 && !group?.allFriendsPaidDate) {
+      return false; // Enforce waiting period even if date wasn't set correctly
+    }
+    
+    if (!group?.allFriendsPaidDate) return false;
+    
+    const paidDate = new Date(group.allFriendsPaidDate);
+    const waitPeriod = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+    const collectDate = new Date(paidDate.getTime() + waitPeriod);
+    const now = new Date();
+    
+    return now >= collectDate;
+  }
+  
+  const getCollectDateString = () => {
+    let paidDate;
+    
+    // If allFriendsPaidDate isn't set but all have paid, use current date as the base
+    if (!group?.allFriendsPaidDate && getSplitProgress() >= 1) {
+      paidDate = new Date();
+    } else if (group?.allFriendsPaidDate) {
+      paidDate = new Date(group.allFriendsPaidDate);
+    } else {
+      return "Collect date unavailable";
+    }
+    
+    const waitPeriod = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+    const collectDate = new Date(paidDate.getTime() + waitPeriod);
+    
+    // Format date as "8 Aug" (day month)
+    const day = collectDate.getDate();
+    const month = collectDate.toLocaleString('en-US', { month: 'short' });
+    
+    return `Collect after ${day} ${month}`;
   }
 
   return (
@@ -373,11 +441,14 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
                 ? "Please wait for your friends to pay their share."
                 : group?.isMoneyCollected 
                   ? "You have collected the money"
-                  : "You can now collect the money"
+                  : canCollectMoney()
+                    ? "You can now collect the money"
+                    : "Money will be available for collection soon"
               : hasUserPaid 
                 ? "You have paid your share :D"
                 : `Pay your share of ${getSymbolOfPreferredCurrency()} ${group?.splitAmount.toFixed(2) || '-'} (excl. fee).`
           }</ThemedText>
+          
           <HorizontalView style={{gap: 8}}>
             <ThemedButton
               loadingOnPress={getSplitProgress() >= 1 && buttonAcceptsPress}
@@ -387,7 +458,7 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
                 (isUserOwner && !isWalletSetup) ||
 
                 // Owner, split is complete, and money is NOT collected → highlight
-                (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected && buttonAcceptsPress) ||
+                (isUserOwner && getSplitProgress() >= 1 && !group?.isMoneyCollected && buttonAcceptsPress && canCollectMoney()) ||
 
                 // Not owner and hasn't paid yet → highlight
                 (!isUserOwner && !hasUserPaid && buttonAcceptsPress)
@@ -397,6 +468,7 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
               isDisabled={
                 (isUserOwner && group?.isMoneyCollected) ||
                 (isUserOwner && isWalletSetup && getSplitProgress() < 1) ||
+                (isUserOwner && !canCollectMoney() && getSplitProgress() >= 1 && !group?.isMoneyCollected) ||
                 (!isUserOwner && hasUserPaid) ||
                 !buttonAcceptsPress
               }
@@ -409,7 +481,11 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
                               ? (
                                   group?.isMoneyCollected
                                     ? "Collected in Wallet"
-                                    : (verified) ? "Collect money" : "Verify email"
+                                    : (!verified) 
+                                      ? "Verify email" 
+                                      : (!canCollectMoney())
+                                        ? getCollectDateString()
+                                        : "Collect money"
                                 )
                               : "Waiting for friends"
                           )
@@ -429,6 +505,7 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
                 if (!verified) {
                   await sendVerify();
                   setVerifyModalVisible(true);
+                  setButtonAcceptsPress(true);
                   return;
                 }
 
@@ -465,16 +542,27 @@ const GroupActionsPanel = ({ group, hasUserPaid, isUserOwner }) => {
 
       <WalletModal
         visible={walletModalVisible}
-        onClose={() => {
+        onClose={(success) => {
           setWalletModalVisible(false);
           refreshUserProfile();
+
+          if (!success) {
+            setButtonAcceptsPress(true);
+          }
         }}
       />
 
       <PaymentModal
+        groupId={group?.groupId}
         originalPaymentAmount={group?.splitAmount}
         isVisible={payModalVisible}
-        onClose={() => setPayModalVisible(false)}
+        onClose={(ignore) => 
+        {
+          setPayModalVisible(false);
+          
+          if (ignore) 
+            setButtonAcceptsPress(true);
+        }}
         onSuccess={handleSetPaid}
       />
 

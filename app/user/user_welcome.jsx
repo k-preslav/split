@@ -14,12 +14,13 @@ import { ArrowRight } from 'lucide-react-native';
 
 const UserWelcome = () => {
   const insets = useSafeAreaInsets();
-  const { setGesturesEnabled, logout } = useUser();
+  const { setGesturesEnabled, setDoPushAnimation, logout } = useUser();
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimation = useRef(new Animated.Value(1)).current;
 
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
+    setDoPushAnimation(true);
   }, []))
 
   useEffect(() => {

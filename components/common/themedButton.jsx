@@ -21,6 +21,7 @@ const ThemedButton = ({
   style,
   enableHaptic = true,
   loadingOnPress = false,
+  animateOnPress = true,
   isPrimary = true,
   icon = null,
   isRound = true,
@@ -68,7 +69,7 @@ const ThemedButton = ({
   const styles = getStyles();
 
   const handlePressIn = () => {
-    if (isDisabled) return;
+    if (isDisabled || !animateOnPress) return;
 
     Animated.spring(iconScaleAnim, {
       toValue: 0.93,
@@ -79,7 +80,7 @@ const ThemedButton = ({
   };
 
   const handlePressOut = () => {
-    if (isDisabled) return;
+    if (isDisabled || !animateOnPress) return;
 
     Animated.spring(iconScaleAnim, {
       toValue: 1,

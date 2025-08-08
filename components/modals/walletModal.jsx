@@ -13,10 +13,15 @@ import { updateUserWalletSettings } from '../../lib/updateUser'
 import { userDetails } from '../../lib/userDetails'
 import { connectToStripe, getAccountBalance, withdrawMoney } from '../../lib/stripeApi'
 import { convertToUserCurrency } from '../../lib/currencyConvert';
+import ConnectBankModal from './connectBankModal';
 
 const WalletModal = ({ visible, onClose }) => {
   const [isWalletSetup, setIsWalletSetup] = React.useState(false);
+  
   const [isBankAccountConnected, setIsBankAccountConnected] = React.useState(false);
+  const [openBankConnectModal, setOpenBankConnectModal] = React.useState(false);
+  const [disableConnectBankButton, setDisableConnectBankButton] = React.useState(false);
+
   const [modalHeight, setModalHeight] = React.useState();
   const [payoutOptionIndex, setPaymentOptionIndex] = React.useState(0);
 
@@ -30,7 +35,7 @@ const WalletModal = ({ visible, onClose }) => {
   useEffect(() => {
     const calcWithdrawMinAmount = async () => {
       const amount = await convertToUserCurrency(withdrawMinAmount);
-      setWithdrawMinAmount(amount.toFixed(2));
+      setWithdrawMinAmount(amount.toFixed(0));
     }
 
     calcWithdrawMinAmount();
@@ -95,11 +100,7 @@ const WalletModal = ({ visible, onClose }) => {
   }, [userDetails.userProfile?.userWalletBankConnected, userDetails.userProfile?.walletPayoutOption]);
 
   const connectBank = async () => {
-    const connectSuccess = await connectToStripe();
-    if (connectSuccess) {
-      setIsBankAccountConnected(true);
-      setModalHeight('52.5%');
-    }
+    setOpenBankConnectModal(true);
   };
 
   const setWalletSetuped = async () => {
@@ -117,7 +118,7 @@ const WalletModal = ({ visible, onClose }) => {
   };
 
   return (
-    <ThemedModal height={modalHeight} visible={visible} onClose={onClose}>
+    <ThemedModal height={modalHeight} visible={visible} onClose={() => onClose(isWalletSetup)}>
       <View
         style={{
           position: 'absolute',
@@ -132,17 +133,16 @@ const WalletModal = ({ visible, onClose }) => {
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
           <ThemedText style={{ paddingLeft: 12, marginBottom: 10 }} fontSize={30} fontWeight='Bold'>
             {isWalletSetup ? 'Your Wallet' : 'Setup Wallet'}
-
-            {isLoading && (
-              <View style={{ paddingLeft: 10, alignItems: 'center', justifyContent: 'center' }}>
-                <ActivityIndicator color={Colors.textGray}/>
-              </View>
-            )}
           </ThemedText>
           {!isWalletSetup && (
             <ThemedText fontSize={22} style={{ marginLeft: 3 }} color={Colors.textGray}>
               {isBankAccountConnected ? '2/2' : '1/2'}
             </ThemedText>
+          )}
+          {isLoading && (
+            <View style={{ paddingLeft: 10, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color={Colors.textGray}/>
+            </View>
           )}
         </View>
 
@@ -274,19 +274,39 @@ const WalletModal = ({ visible, onClose }) => {
             <View style={{ flex: 1, paddingTop: 12, gap: 12 }}>
               <ThemedButton
                 text="Connect bank account"
-                isPrimary={true}
+                isPrimary={!disableConnectBankButton}
+                isDisabled={disableConnectBankButton}
                 extraLightWhenSecondary={true}
                 isRound={false}
                 sizeY={60}
                 sizeX={'100%'}
                 icon={<Landmark strokeWidth={2.5} style={{ marginLeft: 3 }} />}
-                loadingOnPress={true}
-                onPress={connectBank}
+                onPress={() => {
+                  connectBank();
+                }}
               />
             </View>
           </View>
         )}
       </View>
+
+      <ConnectBankModal 
+        visible={openBankConnectModal}
+        onClose={(success) => {
+          if (success) {
+            setTimeout(() => {
+              if (!isWalletSetup) {
+                setIsBankAccountConnected(true);
+                setModalHeight('52.5%');
+                
+                setIsWalletSetup(true);
+              }
+            }, 400)
+          }
+          
+          setOpenBankConnectModal(false);
+        }}
+      />
     </ThemedModal>
   );
 };

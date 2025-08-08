@@ -10,6 +10,7 @@ export const UserContext = createContext();
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [areGesturesEnabled, setGesturesEnabled] = useState(true);
+  const [doPushAnimation, setDoPushAnimation] = useState(false);
 
   async function register(name, email, password) {
     try {
@@ -126,7 +127,7 @@ export function UserProvider({ children }) {
   }
 
   return (
-    <UserContext.Provider value={{ register, login, logout, setGesturesEnabled, areGesturesEnabled }}>
+    <UserContext.Provider value={{ register, login, logout, setGesturesEnabled, areGesturesEnabled, setDoPushAnimation, doPushAnimation }}>
       {children}
     </UserContext.Provider>
   )

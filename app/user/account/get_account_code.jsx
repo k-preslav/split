@@ -20,11 +20,12 @@ import { deviceInfo } from '../../../global/deviceInfo';
 import ThemedButton from '../../../components/common/themedButton';
 import UserCodeShare from '../../../components/user/userCodeShare';
 import { fetchUserProfile } from '../../../lib/getUser';
+import { updateAppVersionInfo, updateDeviceInfo, updateUiThemeInfo, updateUserLocale } from '../../../lib/dataCollection';
 
 const GetAccountCode = () => {
   const userCode = userDetails.userProfile.userCode;
 
-  const {setGesturesEnabled} = useUser();
+  const {setGesturesEnabled, setDoPushAnimation} = useUser();
   const [shareModalVisible, setShareModalVisible] = React.useState(false);
 
   const screenWidth = Dimensions.get('window').width;
@@ -47,8 +48,18 @@ const GetAccountCode = () => {
     }
   }, [])
 
+  useEffect(() => {
+    setTimeout(async () => {
+      await updateDeviceInfo();
+      await updateUserLocale();
+      await updateAppVersionInfo();
+      await updateUiThemeInfo();
+    }, 500);
+  }, []);
+
   useFocusEffect(useCallback(() => {
     setGesturesEnabled(false);
+    setDoPushAnimation(false);
   }, []))
 
   return (

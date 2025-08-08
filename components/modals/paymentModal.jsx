@@ -9,16 +9,17 @@ import { userDetails } from '../../lib/userDetails';
 import HorizontalView from '../views/horizontalView';
 import { deviceInfo } from '../../global/deviceInfo';
 import { Colors } from '../themes/colors';
-import { getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale';
+import { getCurrencyFromLocale, getSymbolOfPreferredCurrency } from '../../lib/getCurrencyFromLocale';
 import Separator from '../special/separator';
 import ActionButton from '../common/actionButton';
 import { Check, CheckCheck, CheckCircle, CheckCircle2, CheckLine, CheckSquare, CheckSquare2, ChevronDown, ChevronRight } from 'lucide-react-native';
 import { scale } from 'react-native-size-matters';
 import { fetchStripeCustomerId } from '../../lib/stripeApi';
 import FeeInfoModal from './feeInfoModal';
-import { calculateTotalPaymentAmount } from '../../lib/paymentFee';
+import { calculateProfit, calculateTotalPaymentAmount } from '../../lib/paymentFee';
+import { updateGroup } from '../../lib/groupsApi';
 
-const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) => {
+const PaymentModal = ({originalPaymentAmount, groupId, isVisible, onClose, onSuccess}) => {
   const [isLoading, setIsLoading] = useState(false);
   
   const { createPaymentMethod, confirmPayment } = useStripe();
@@ -30,14 +31,24 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
 
   const [modalHeight, setModalHeight] = useState('52%');
 
+  const [fullPaymentAmount, setFullPaymentAmount] = useState(0);
+  useEffect(() => {
+    const calculateAmount = async () => {
+      const amount = await calculateTotalPaymentAmount(originalPaymentAmount);
+      setFullPaymentAmount(amount);      
+    };
+
+    calculateAmount();
+  }, [originalPaymentAmount]);
+
   const [feeInfoModalVisible, setFeeInfoModalVisible] = useState(false);
 
   useEffect(() => {
     setModalHeight(paymentMethodIndex === 0 ? '45%' : '33.5%');
   }, [paymentMethodIndex]);
 
-  const close = () => {
-    onClose?.();
+  const close = (ignore) => {
+    onClose?.(ignore);
 
     setShowPayButtonSuccess(false);
     setCardDetails(null);
@@ -51,8 +62,9 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          amount: Math.round(calculateTotalPaymentAmount(originalPaymentAmount) * 100),
-          customerId: customerId
+          amount: Math.round(fullPaymentAmount * 100),
+          customerId: customerId,
+          currency: getCurrencyFromLocale()
         }),
       });
       const data = await res.json();
@@ -102,15 +114,18 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
     } else {
       setShowPayButtonSuccess(true);
       setFeeInfoModalVisible(false);
-      setTimeout(() => {
+      setTimeout(async () => {
+        const profit = await calculateProfit(originalPaymentAmount);
+        await updateGroup(groupId, { profitPerTransaction: profit });
+
         onSuccess?.();
-        close();
+        close(false);
       }, 1250);
     }
   };
 
   return (
-    <ThemedModal visible={isVisible} height={modalHeight} onClose={close}>
+    <ThemedModal visible={isVisible} height={modalHeight} onClose={() => close(true)}>
       <View style={{
         position: 'absolute',
         top: 20,
@@ -200,7 +215,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
         </ThemedText>
 
         <ThemedButton
-          text={showPayButtonSuccess ? "" : `Pay Now - ${getSymbolOfPreferredCurrency()} ${calculateTotalPaymentAmount(originalPaymentAmount)?.toFixed(2) || '0.00'}`}
+          text={showPayButtonSuccess ? "" : `Pay Now - ${getSymbolOfPreferredCurrency()} ${fullPaymentAmount || '0.00'}`}
           icon={showPayButtonSuccess ? <CheckCheck strokeWidth={2.35} /> : null}
           overrideIconSize={40}
           isDisabled={!cardDetails?.complete || isLoading || showPayButtonSuccess}
@@ -215,6 +230,7 @@ const PaymentModal = ({originalPaymentAmount, isVisible, onClose, onSuccess}) =>
       {isVisible && (
         <FeeInfoModal 
           originalPaymentAmount={originalPaymentAmount}
+          totalPaymentAmount={fullPaymentAmount}
           visible={feeInfoModalVisible}
           onClose={() => setFeeInfoModalVisible(false)}
         />

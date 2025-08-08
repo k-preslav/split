@@ -428,7 +428,7 @@ const AccountSettingsView = () => {
                   <ThemedText
                     fontSize={14}
                     fontWeight="Regular"
-                  >If you want to delete your account, you can</ThemedText>
+                  >If you want to delete   your account, you can</ThemedText>
                   <ThemedText
                     fontSize={14}
                     color={Colors.red}
